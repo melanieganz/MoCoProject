@@ -11,3 +11,6 @@ More information about our challenge and sign up can be found on our [website](h
 ## Available code:
 * [recon_ismrmrd_dataset](https://github.com/ismrmrd/ismrmrd-python-tools/blob/master/recon_ismrmrd_dataset.py): useful script for loading h5 data as numpy array and performing a basic reconstruction using the Inverse Fourier Transform
 * `Save_reconstruction.py`: helper functions for sorting the reconstructed image and saving it as .nii file
+* `Evaluate_SSIM.py`: script for evaluating image quality metrics, i.e. SSIM, on the challenge test submissions
+* `Rank_submissions.py`: script for ranking the test submissions basaed on the median rank profile for SSIM values
+* `Utils.py`: utilitary functions
