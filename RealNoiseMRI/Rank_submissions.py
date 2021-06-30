@@ -1,5 +1,6 @@
 '''
-Script for evaluating image quality metrics on the challenge test submissions
+Script for ranking the test submissions basaed on the median rank profile for
+SSIM values
 '''
 
 import numpy as np
