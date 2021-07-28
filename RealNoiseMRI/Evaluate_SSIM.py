@@ -77,7 +77,16 @@ for part in participants:
                 psnr.append(0)
                 tg.append(0)
 
+                
+        # calculate average metric values and store them in footer of the text
+        # file:
+        footer = 'Average over all subjects: '
+        for m in [ssim, psnr, tg]:
+            footer += str(np.mean(m))+' '
+        
+        
         # save the calculated metrics in a text file:
         save_arr = np.array([test_subj, ssim, psnr, tg]).T
-        np.savetxt(out_dir+part+'/Values_'+task+'.txt', save_arr, fmt='%s',
-                   header='Team '+part+'\n Values of the metrics SSIM, PSNR and TG for subjects specified in first column')
+        np.savetxt(out_dir+part+'/Values_'+task+'.txt', save_arr, fmt='%s', 
+                   header='Team '+part+'\n Values of the metrics SSIM, PSNR and TG for subjects specified in first column',
+                   footer=footer)
