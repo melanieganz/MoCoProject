@@ -62,7 +62,7 @@ def ReOrderImg(img, show_img=True):
     
     # flip axes 0 and 1, so that right-left and anterior-posterior are sorted 
     # correctly:
-    img_res = img_res[::-1,::-1]
+    img_res = img_res[::-1]
     
     return img_res    
 
