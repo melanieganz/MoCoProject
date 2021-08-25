@@ -12,7 +12,7 @@
 
 
 ## References:
-[1] https://freesurfer.net/fswiki/recon-all
+[1] https://freesurfer.net/fswiki/recon-all, software version FreeSurfer v7.1.1 is used.
 
 [2] Greve DN, Fischl B. Accurate and robust brain image alignment using boundary-based registration. NeuroImage. 2009;48(1):63-72. doi:10.1016/j.neuroimage.2009.06.060
 
