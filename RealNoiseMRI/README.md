@@ -1,6 +1,6 @@
 # RealNoiseMRI - MRI reconstruction challenge with realistic noise
 
-[Challenge Website](https://realnoisemri.grand-challenge.org/Description/)  |  [MICCAI 2021 Satellite Event](https://miccai2021.org/en/MICCAI2021-CHALLENGES.html)
+[Challenge Website](https://realnoisemri.grand-challenge.org/Description/)  |  [MICCAI 2021 Satellite Event](https://miccai2021.org/en/MICCAI2021-CHALLENGES.html) | [Med-NeurIPS workshop 2021](https://sites.google.com/view/med-neurips-2021)
 
 In recent years, there is a growing focus on the application of fast magnetic resonance imaging (MRI) based on prior knowledge. However, in most cases the generation of the under-sampled k-space data is artificial and not realistic, since patient motion corrupts the k-space differently than removing certain lines of k-space.
 
