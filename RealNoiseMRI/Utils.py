@@ -8,6 +8,9 @@ import subprocess
 import os
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 from scipy.ndimage import sobel
+import matplotlib.pyplot as plt
+import ismrmrd
+from datetime import timedelta
 
 
 def RegisterNifti(sub, task, subm_dir, intern_dir, out_dir):
@@ -181,3 +184,67 @@ def Comp_Metrics(image, reference, brainmask, whole_image=False, normal=True):
 
     return ssim, psnr, tg
 
+
+def DrawLines(a, b, c, d, metric, lw=0.5, col='gray'):
+    '''
+    Function to connect single paired data in a boxplot with thin grey lines
+
+    Parameters
+    ----------
+    a : list
+        Defines from which column of the metric array to choose the y-values 
+        from which the lines start.
+    b : list
+        Defines from which column of the metric array to choose the y-values 
+        at which the lines end.
+    c : list
+        Defines the x position of the start of the lines.
+    d : list
+        Defines the x position of the end of the lines.
+    metric : array
+        metric values which are used for the boxplot and should be connected.
+    lw : float
+        Linewidth of the lines. Optional, the default is 0.5.
+    col : string
+        Color of the lines. Optional, the default is 'gray'.
+
+    Returns
+    -------
+    0
+
+    '''
+    
+    for A,B,C,D in zip(a,b,c,d):
+        for y1, y2 in zip(metric[:,A], metric[:,B]):
+            plt.plot([C,D], [y1, y2], col, lw=lw)
+
+    return 0
+
+
+def ExtractAcquisitionTimeStamp(filename, acqnum):
+    '''
+    Function to extract the time stamp correponding to acquisition number 
+    acqnum of file specified under filename
+
+    Parameters
+    ----------
+    filename : str
+        filename of h5 file.
+    acqnum : int
+        number of acquisition of interest.
+
+    Returns
+    -------
+    converted_stamp : str
+        Acquisition time in format hh:mm:ss.f.
+
+    '''
+    
+    dset = ismrmrd.Dataset(filename, 'dataset', create_if_needed=False)
+    acq = dset.read_acquisition(acqnum)
+    stamp = acq.acquisition_time_stamp
+    
+    converted_stamp = str(timedelta(milliseconds=stamp*2.5))
+    
+    return converted_stamp
+    
