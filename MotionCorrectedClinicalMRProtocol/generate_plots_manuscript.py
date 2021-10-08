@@ -3,6 +3,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import glob
 import string
+import os
 import nibabel as nib
 from statsmodels.stats.multitest import multipletests
 from utils import Show_Stars, SortFiles, MakeBoxplot, DrawLines2, DrawLines
@@ -931,8 +932,66 @@ if plot_nod:
 
 ''' (5) Plot DWI analysis: '''
 plot_DWI = False
+calc_ADC_hist = False
 if plot_DWI:
-    # remember to add code for calculating the histograms somewhere!
+    # calculate histograms of ACS difference images:
+    sub_out_dir = '/data1/hannah/Metrics_Results/'
+    in_dir = '/data1/hannah/Registrations/'
+
+    subdir = []
+    for i in range(13,20):
+        subdir.append('HC_'+str(i)+'/')
+    for i in range(20,23):
+        subdir.append('HC_'+str(i)+'/')
+
+    if calc_ADC_hist:
+        all_mean, all_std, all_sum = [], [], []
+        for sub in subdir:
+            differences = []
+            descr = []
+            still_off = glob.glob(in_dir+sub+'/ADC/*MOCO_OFF_STILL*.nii')[0]
+            still = nib.load(still_off).get_fdata().astype(np.uint16)
+            bm = glob.glob(in_dir+sub+'bm_mov_*ADC*.nii')[0]
+            bm = nib.load(bm).get_fdata().astype(np.uint16)        
+
+            still = still*bm
+
+            all_imgs = [x for x in glob.glob(in_dir+sub+'/ADC/**.nii') if x not in still_off]
+            for im in all_imgs:
+                img = nib.load(im).get_fdata().astype(np.uint16)
+                img = img*bm
+
+                diff = still.astype(np.float) - img.astype(np.float)
+                differences.append(diff)
+                descr.append(os.path.basename(im))
+            differences, descr = np.array(differences), np.array(descr)
+            ind = np.argsort(descr)
+            differences = differences[ind]
+            descr = descr[ind] 
+            sums, means, stds = [], [], []
+            for i in range(0, len(descr)):
+                diff = differences[i][bm!=0]   # only look at voxels inside the brain!
+                n, bins, tmp = plt.hist(diff, bins = 2000)
+                plt.title(descr[i][12:25])
+                sums.append(np.sum(np.abs(diff))/len(diff))
+
+                mids = 0.5*(bins[1:]+bins[:-1])
+                mean = np.average(mids, weights=n)
+                std = np.sqrt(np.average((mids-mean)**2, weights=n))
+                means.append(mean)
+                stds.append(std)
+                
+            all_mean.append(means)
+            all_std.append(stds)
+            all_sum.append(sums)
+
+        # look at results for all subjects:
+        All_mean, All_std, All_sum = np.array(all_mean)[:,::-1], np.array(all_std)[:,::-1], np.array(all_sum)[:,::-1]
+        save = np.array([All_mean, All_std, All_sum])
+        np.save(out_dir_metrics+'ADC_all_values_04_26', save)
+    
+    
+    # load the values for the ADC histograms and plot them:
     All_mean, All_std, All_sum = np.load(out_dir_metrics+'ADC_all_values_04_26.npy')
     All_mean = np.array([All_mean[:,0], All_mean[:,2], All_mean[:,1]]).T
     All_std = np.array([All_std[:,0], All_std[:,2], All_std[:,1]]).T
@@ -1064,125 +1123,6 @@ if plot_DWI:
     
     print('Mean Values of ground truth scans:', means)
     print('Overall mean value:', np.mean(means))
-
-    
-    
-    
-    '''
-    plt.figure(figsize=(13,3))
-    ax=plt.subplot(1,3,1)
-    for i in range(len(x)):
-        plt.errorbar(x[i], mean_sum[i], yerr=None, color=colors_te[i], fmt='.', 
-                     capsize=3)
-    
-    small = dict(markersize=3)
-    box1 = plt.boxplot(All_sum, flierprops=small)
-    for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors_te):
-                patch.set(color=color, lw=1.7)
-                patch2.set(color='k', lw=1.7)
-    
-    plt.xticks(labels=[], ticks=[])
-    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
-    for y1, y2 in zip(All_sum[:,1], All_sum[:,2]):
-        plt.plot([2,3], [y1, y2], 'darkslategray', lw=1)
-    plt.annotate('Still', xy=(0.17, -0.1), xytext=(0.17, -0.18), 
-                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom',
-                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5),
-                 arrowprops=dict(arrowstyle='-[, widthB=1.4, lengthB=0.7', 
-                                 lw=1.5, color='grey'))
-    plt.annotate('Nod', xy=(0.67, -0.1), xytext=(0.67, -0.18), 
-                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom',
-                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5),
-                 arrowprops=dict(arrowstyle='-[, widthB=3.0, lengthB=0.7', 
-                                 lw=1.5, color='grey'))
-    Show_Stars(p_sum, ind, x, np.amax(All_sum, axis=0), arange_dh='diff', 
-               col='black')
-    lim = plt.gca().get_ylim()
-    plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-    plt.ylabel('Mean absolute difference [$\\frac{\mu m^2}{s}$]')
-    ax.text(-0.3, 0.9, string.ascii_lowercase[0], transform=ax.transAxes,
-            size=21, weight='bold')
-    
-    ax=plt.subplot(1,3,2)
-    for i in range(len(x)):
-        plt.errorbar(x[i], mean_mean[i], yerr=None, color=colors_te[i], fmt='.', 
-                     capsize=3)
-    
-    small = dict(markersize=3)
-    box1 = plt.boxplot(All_mean, flierprops=small)
-    for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors_te):
-                patch.set(color=color, lw=1.7)
-                patch2.set(color='k', lw=1.7)
-    
-    plt.xticks(labels=[], ticks=[])
-    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
-    for y1, y2 in zip(All_mean[:,1], All_mean[:,2]):
-        plt.plot([2,3], [y1, y2], 'darkslategray', lw=1)
-    plt.annotate('Still', xy=(0.17, -0.1), xytext=(0.17, -0.18), 
-                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom', 
-                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5),
-                 arrowprops=dict(arrowstyle='-[, widthB=1.4, lengthB=0.7', 
-                                 lw=1.5, color='grey'))
-    plt.annotate('Nod', xy=(0.67, -0.1), xytext=(0.67, -0.18), 
-                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom',
-                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5), 
-                 arrowprops=dict(arrowstyle='-[, widthB=3.0, lengthB=0.7', 
-                                 lw=1.5, color='grey'))
-    Show_Stars(p_mean, ind, x, np.amax(All_mean, axis=0), arange_dh='diff', 
-               col='black')
-    lim = plt.gca().get_ylim()
-    plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-    plt.ylabel('Mean of histogram [$\\frac{\mu m^2}{s}$]')
-    ax.text(-0.22, 0.9, string.ascii_lowercase[1], transform=ax.transAxes,
-            size=21, weight='bold')
-    
-    ax=plt.subplot(1,3,3)
-    for i in range(1):
-        plt.errorbar(x[i], mean_std[i], yerr=None, color=colors_te[i], fmt='.', 
-                     capsize=3)
-    for i in range(1,len(x)):
-        plt.errorbar(x[i], mean_std[i], yerr=None, label=names[i], 
-                     color=colors_te[i], fmt='.', capsize=3)
-    
-    small = dict(markersize=3)
-    box1 = plt.boxplot(All_std, flierprops=small)
-    for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors_te):
-                patch.set(color=color, lw=1.7)
-                patch2.set(color='k', lw=1.7)
-    
-    plt.xticks(labels=[], ticks=[])
-    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
-    for y1, y2 in zip(All_std[:,1], All_std[:,2]):
-        plt.plot([2,3], [y1, y2], 'darkslategray', lw=1)
-    plt.annotate('Still', xy=(0.17, -0.1), xytext=(0.17, -0.18), 
-                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom', 
-                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5), 
-                 arrowprops=dict(arrowstyle='-[, widthB=1.4, lengthB=0.7', 
-                                 lw=1.5, color='grey'))
-    plt.annotate('Nod', xy=(0.67, -0.1), xytext=(0.67, -0.18), 
-                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom',
-                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5), 
-                 arrowprops=dict(arrowstyle='-[, widthB=3.0, lengthB=0.7', 
-                                 lw=1.5, color='grey'))
-    Show_Stars(p_std, ind, x, np.amax(All_std, axis=0), arange_dh='diff', 
-               col='black')
-    lim = plt.gca().get_ylim()
-    plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-    plt.ylabel('Std of histogram [$\\frac{\mu m^2}{s}$]')
-    legend = plt.legend(loc='upper center', ncol = 2, 
-                        bbox_to_anchor=(-0.8, -0.25), frameon=True)
-    ax.text(-0.22, 0.9, string.ascii_lowercase[2], transform=ax.transAxes,
-            size=21, weight='bold')
-    
-    legend.get_frame().set_linewidth(2)           
-    plt.subplots_adjust(hspace=0.2, wspace=0.3)
-    plt.savefig(out_dir+'ADC'+save+'.tiff', format='tiff', bbox_inches='tight', 
-                dpi=200)
-    plt.savefig(out_dir+'ADC'+save+'.png', format='png', bbox_inches='tight', 
-                dpi=200)
-    plt.show()'''
-    
-    
     
     
     
