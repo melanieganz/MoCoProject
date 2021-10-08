@@ -125,16 +125,29 @@ def PerformWilcoxonAllImg(type_metric, values, sequ, out_dir, save, option=False
             ind = np.array([[0,1], [1,2], [0,2]])
     else:
         ind = np.array([[0,1],[2,3], [4,5], [2,5], [2,4], [3,5]])
- 
-    for index in ind:
-        altern = 'two-sided'   
-        if option == 'qs':
-            tmp, p = wilcoxon(values[:,index[0]], values[:,index[1]], alternative=altern, zero_method='pratt') # not used anymore!!!
-        else:
-            tmp, p = wilcoxon(values[:,index[0]], values[:,index[1]], alternative=altern)
-        text.append(str(index[0])+' '+str(index[1])+' '+altern+': p = '+str(p))
-        p_values.append(p)
-
+        
+    altern = 'two-sided' 
+    
+    if type_metric=='QS' and sequ == 'T2STAR':
+        p_values = [0,0]  
+    else:
+        for index in ind:        
+            # sort out nans:
+            values_1 = values[:,index[0]]
+            values_2 = values[:,index[1]]
+            values_1 = values_1[np.logical_not(np.isnan(values_1))]
+            values_2 = values_2[np.logical_not(np.isnan(values_2))]
+            
+            if len(values_1) != len(values_2):
+                print('ERROR: arrays for '+type_metric+' contain different number of NaN elements')
+            
+              
+            if option == 'qs':
+                tmp, p = wilcoxon(values_1, values_2, alternative=altern, zero_method='pratt') # not used anymore!!!
+            else:
+                tmp, p = wilcoxon(values_1, values_2, alternative=altern)
+            text.append(str(index[0])+' '+str(index[1])+' '+altern+': p = '+str(p))
+            p_values.append(p)
 
     #correct for multiple comparisons:
     rej, p_values_cor, _, __ = multipletests(p_values, alpha=0.05, method='fdr_bh', is_sorted=False, returnsorted=False)
@@ -214,6 +227,3 @@ def PerformWilcoxonRetro(type_metric, values, sequ, out_dir, save, option=False)
     np.savetxt(out_dir+'ParametricTests/'+sequ+'/Tests_'+type_metric+save+'.txt', text, fmt='%s')
 
     return p_values_cor, rej, ind, altern
-
-
-
