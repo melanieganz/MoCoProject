@@ -9,6 +9,7 @@
 * `recon_register.py`: functions for running the FreeSurfer command `recon-all` and for registering images with `bbregister`[2] and `robust_register`[3]
 * `statistical_tests.py`: functions to perform Wilcoxon signed rank tests
 * `utils.py`: utility functions
+* * `generate_plots_manuscript.py`: script to generate all plots of the manuscript
 
 
 ## References:
