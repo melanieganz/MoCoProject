@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import glob
-import string
 import os
+import string
 import nibabel as nib
 from statsmodels.stats.multitest import multipletests
 from utils import Show_Stars, SortFiles, MakeBoxplot, DrawLines2, DrawLines
@@ -591,6 +591,7 @@ if plot_still:
             ticklabels = ['DWI']
             ticks = [1.5]
             plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
+            plt.yticks([2,3,4])
         
         for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors):
             patch.set(color=color, lw=1.7)
@@ -615,8 +616,9 @@ if plot_still:
                            col='black')
             lim = plt.gca().get_ylim()
             plt.ylim(lim[0],(lim[1]-lim[0])*1.05+lim[0])
+            
         DrawLines2(a[0:len(p_still)],b[0:len(p_still)],c[0:len(p_still)],
-                   d[0:len(p_still)],m_still, lw=1, col='darkslategray')
+                   d[0:len(p_still)],m_still, lw=0.7, col='darkslategray')
         
         if i == 2:
             ax.text(-0.6, 0.95, string.ascii_lowercase[num], 
@@ -1123,6 +1125,8 @@ if plot_DWI:
     
     print('Mean Values of ground truth scans:', means)
     print('Overall mean value:', np.mean(means))
+    
+    
     
     
     
