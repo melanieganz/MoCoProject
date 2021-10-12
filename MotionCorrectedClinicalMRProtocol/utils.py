@@ -245,10 +245,18 @@ def DrawLines(a, b, c, d, metric, lw=0.5, col='gray'):
     0
 
     '''
+    counts = {}
     
     for A,B,C,D in zip(a,b,c,d):
         for y1, y2 in zip(metric[:,A], metric[:,B]):
-            plt.plot([C,D], [y1, y2], col, lw=lw)
+            key = str(y1)+','+str(y2)
+            if key in counts:
+                counts[key] += 1
+            else:
+                counts[key] = 1
+                
+            linewidth = lw*(1+counts[key]/2)
+            plt.plot([C,D], [y1, y2], col, lw=linewidth)
 
     return 0
 
@@ -283,8 +291,18 @@ def DrawLines2(a, b, c, d, metric, lw=0.5, col='gray'):
 
     '''
     
+    counts = {}
+    
     for A,B,C,D in zip(a,b,c,d):
         for y1, y2 in zip(metric[A], metric[B]):
-            plt.plot([C,D], [y1, y2], col, lw=lw)
+            key = str(y1)+','+str(y2)
+            if key in counts:
+                counts[key] += 1
+            else:
+                counts[key] = 1
+                
+            linewidth = lw*(1+counts[key]/2)
+            plt.plot([C,D], [y1, y2], col, lw=linewidth)
+            
 
     return 0
