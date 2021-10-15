@@ -1,4 +1,6 @@
-# Evaluating the performance of markerless prospective motion correction and selective reacquisition in a clinical protocol for pediatric brain MRI
+# Evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI
+
+Manuscript submitted to the Journal of Magnetic Resonance Imaging
 
 ## Code used for analysing the data:
 * `analysis_cort_thickness.py`: generates thickness maps for each subject and each motion tpye / motion correction setting and fits general linear models to the thickness maps
