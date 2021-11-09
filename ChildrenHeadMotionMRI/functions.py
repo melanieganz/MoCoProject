@@ -16,65 +16,41 @@ import datetime
 import csv
 
 
+def read_nii(path):
+    img = nib.load(path)
+    return img
 
+# compute centroids based on coordinates of voxels making up the segment of the region
 def compute_centroid(indeces):
-    '''
-    Compute centorids based on coordinates of voxels corresponding to the region
-
-    Parameters
-    ----------
-    indeces : array
-        3xN Array of indices corresonding to the region.
-
-    Returns
-    -------
-    cx, cy, cz : int
-        coordinates of the region's centroid.
-        
-    '''
     cx = np.average(indeces[0])
     cy = np.average(indeces[1])
     cz = np.average(indeces[2])
     return int(cx), int(cy), int(cz)
 
 
-def getCentroids(path,matrix,xOffset=0):
-    '''
-    Loads the regions binarizations and calculates a centroid for each region.
-
-    Parameters
-    ----------
-    path : str
-        Path to the regions' binarization.
-    matrix : array
-        vox2ras matrix from FreeSurfer.
-    xOffset : int, optional
-        Offset used to move centroids left - right. The default is 0.
-
-    Returns
-    -------
-    centroids : list
-        List of centroid coordinates.
-    regions : list
-        List of filenames corresponding to each region.
-
-    '''
+# path - to the regions binarization
+# matrix - vox2ras from freesurfer
+# xOffset - used to move centroids left-right
+def getCentriods(path,matrix,xOffset=0):
     result = np.zeros((256,256,256))
     result2 = np.zeros((256,256,256))
+    print(path)
 
     minDist = 1000
     centroids = []
     regions = []
     # for region classification counter
     xx = 2
+    img1 = 0
     for root, dirs, files in os.walk(path):
+        print(files)
         # interate through the 16 binarized files
         for file in files:
             if "region" in file:
                 minDist = 1000
                 path = root+"/"+file
                 regions.append(file)
-                img1 = nib.load(path)
+                img1 = read_nii(path)
                 img = img1.get_fdata()
                 indeces = np.where(img == 1)
                 x,y,z = compute_centroid(indeces)
@@ -110,47 +86,14 @@ def getCentroids(path,matrix,xOffset=0):
     new_img.to_filename("subcortical.nii")
     new_img1 = nib.Nifti1Image(result2, img1.affine, img1.header)
     new_img1.to_filename("cortical.nii")
-    return centroids,regions
+    return centroids,regions,result
 
 
 def ssd(A,B):
-    '''
-    Calculates displacement between arrays A and B.
-
-    Parameters
-    ----------
-    A : array
-        Array.
-    B : array
-        Array of same shape as A.
-
-    Returns
-    -------
-    int
-        value of sum of squared differences.
-
-    '''
     return np.sqrt(((np.array(A)-np.array(B))**2).sum())
 
 
 def computeHistograms2(filenames,centroids):
-    '''
-    Computes displacement of centroids (using ssd) for each matrix from the 
-    files specified under filenames.
-
-    Parameters
-    ----------
-    filenames : list of strings
-        List of filenames containing matrices.
-    centroids : list
-        List of centroid coordinates.
-
-    Returns
-    -------
-    histograms : list
-        List of lists of displacements.
-
-    '''
     histograms = []
     for centroid in centroids:
         histogram = []
@@ -166,62 +109,13 @@ def computeHistograms2(filenames,centroids):
     
 
 def shortRegName(regionsMel):
-    '''
-    Abbreviate the names of regions.
-
-    Parameters
-    ----------
-    regionsMel : str
-        String with region description.
-
-    Returns
-    -------
-    y : str
-        Abbreviation.
-
-    '''
-    l = regionsMel.split("(")[-1].split(")")[0].split(" ")
-    while "" in l: l.remove("")
-    y = l[-1].replace('ctx-','')
-    return y 
+        l = regionsMel.split("(")[-1].split(")")[0].split(" ")
+        while "" in l: l.remove("")
+        y = l[-1].replace('ctx-','')
+        return y 
 
         
 def MakeSubPlot(data1,data2,data3,label1,label2,label3,title,ymax,j,k,nr,cort=0):
-    '''
-    Automisation of plotting three different metrics for each region.
-
-    Parameters
-    ----------
-    data1 : array
-        First metric.
-    data2 : array
-        Second metric.
-    data3 : array
-        Thrid metric.
-    label1 : str
-        Label of first metric.
-    label2 : str
-        Label of second metric.
-    label3 : str
-        label of third metric.
-    title : str
-        title of subplot.
-    ymax : float
-        limit for y axis.
-    j : int
-        select from which region to start iteration.
-    k : int
-        select until which region to iterate.
-    nr : int
-        number of subplot.
-    cort : TYPE, optional
-        DESCRIPTION. The default is 0.
-
-    Returns
-    -------
-    None.
-
-    '''
     data = []
     for i in range(j,k):
         data.append(data1[:,i])
@@ -230,7 +124,7 @@ def MakeSubPlot(data1,data2,data3,label1,label2,label3,title,ymax,j,k,nr,cort=0)
     dataa = np.array(data)
     vox2ras =[[-1.00000,0.00000,0.00000,133.17697],[0.00000,0.00000,1.00000,-105.64328],[0.00000,-1.00000, 0.00000,88.49352],
               [0.00000,0.00000,0.00000,1.00000]]
-    centroidsMel, regionsMel = getCentroids("./test data/mel",vox2ras,0)
+    centroidsMel, regionsMel,result = getCentriods("/pc_disk1/moco/StudentProjects/MSc/Hannah/FrontRadio_Eichhorn_2021/analysis/test data",vox2ras,0)
     plt.subplot(4,1,nr)
     plt.boxplot(data)
     for i in range((k-j)*3):
@@ -256,7 +150,7 @@ def MakeSubPlot(data1,data2,data3,label1,label2,label3,title,ymax,j,k,nr,cort=0)
             x.append(shortRegName(regionsMel[i//3]))
         else:
             x.append("")
-    plt.xticks(np.arange((k-j)*3)+1,x)
+    plt.xticks(np.arange((k-j)*3)+2,x)  #+1
     if nr == 4:
         plt.legend(loc="upper center", ncol = 3, bbox_to_anchor=(0.5, -0.3))
     plt.title(title,fontsize=15)
@@ -268,35 +162,6 @@ def MakeSubPlot(data1,data2,data3,label1,label2,label3,title,ymax,j,k,nr,cort=0)
 
 
 def makePlotCh(data1,data2,label1,label2,title,ymax,cort=0, lab_mf=False, leg=False):
-    '''
-    Plot two datasets comparatively as boxplots.
-
-    Parameters
-    ----------
-    data1 : array
-        first dataset.
-    data2 : array
-        second dataset.
-    label1 : str
-        label for first dataset.
-    label2 : str
-        label for second dataset.
-    title : str
-        label for title of theplot.
-    ymax : float
-        limit for y axis.
-    cort : int, optional
-        Defines whether cortical or subcortical region. The default is 0.
-    lab_mf : bool, optional
-        Whether y label is displacement of motion free time. The default is False.
-    leg : bool, optional
-        If legend should be added. The default is False.
-
-    Returns
-    -------
-    None.
-
-    '''
     data = []
     for i in range(len(data1[0])):
         data.append(data1[:,i])
@@ -304,7 +169,7 @@ def makePlotCh(data1,data2,label1,label2,title,ymax,cort=0, lab_mf=False, leg=Fa
     dataa = np.array(data)
     vox2ras =[[-1.00000,0.00000,0.00000,133.17697],[0.00000,0.00000,1.00000,-105.64328],[0.00000,-1.00000, 0.00000,88.49352],
               [0.00000,0.00000,0.00000,1.00000]]
-    centroidsMel, regionsMel = getCentroids("./test data/mel",vox2ras,0)
+    centroidsMel, regionsMel,result = getCentriods("/pc_disk1/moco/StudentProjects/MSc/Hannah/FrontRadio_Eichhorn_2021/analysis/test data",vox2ras,0)
 
     plt.boxplot(dataa)
     for i in range(len(data1[0])*2):
@@ -346,24 +211,8 @@ def makePlotCh(data1,data2,label1,label2,title,ymax,cort=0, lab_mf=False, leg=Fa
     
     
 def search_string_in_file(file_name, string_to_search):
-    '''
-    Search for the given string in file and return lines containing that string,
-    along with line numbers
-
-    Parameters
-    ----------
-    file_name : str
-        name of the file to search.
-    string_to_search : str
-        string to search in the file.
-
-    Returns
-    -------
-    list_of_results : list
-        list of all ines containing the string.
-
-    '''
-    
+    """Search for the given string in file and return lines containing that string,
+    along with line numbers"""
     line_number = 0
     list_of_results = []
     # Open the file in read only mode
@@ -380,22 +229,7 @@ def search_string_in_file(file_name, string_to_search):
 
 
 def PClCentroid(sub):
-    '''
-    Extract position of Point Cloud Centroid in RAS coordinates from tracking
-    files.
-
-    Parameters
-    ----------
-    sub : str
-        ID for the corresponding subject.
-
-    Returns
-    -------
-    array
-        coordinates of point cloud centroid.
-
-    '''
-    track_dir = '/mnt/mocodata1/MoCoOther/Andreea-Project/moco/subjects data/'
+    track_dir = '/mnt/mocodata1/BUF/DataTCL/'
     track_file = glob.glob(track_dir+sub+'/*MOT.tsm')[0]
     
     # centroid position:
@@ -454,8 +288,7 @@ def ParametersFromTransf(A):
 
 def DecomposeMat(matrices):
     '''
-    Decomposes all elements of matrices into translation and rotation for 
-    one subject. Averages absolute values.
+    Decomposes all elements of matrices into translation and rotation for one subject.
 
     Parameters
     ----------
@@ -484,29 +317,10 @@ def DecomposeMat(matrices):
 
 
 def Decompose_All(subjs, path):
-    '''
-    Decompose all matrices for all subjects specified in subjs. Averages
-    absolute values.
-
-    Parameters
-    ----------
-    subjs : list of str
-        List of all subject IDs for which the matrices should be decomposed.
-    path : str
-        path to the files containing matrices.
-
-    Returns
-    -------
-    mean_transl, mean_rot
-        list of mean values for translation and rotation on each axis.
-    std_transl, std_rot
-        list of standard deviations for translation and rotation on each axis
-
-    '''
     
     mean_tr, mean_rot, std_tr, std_rot = [], [], [], []    
     for sub in subjs:
-        Scan_Times = np.loadtxt('./new_calc/Scan_Times.txt', dtype=str, delimiter=', ', skiprows=1)
+        Scan_Times = np.loadtxt('/pc_disk1/moco/StudentProjects/MSc/Hannah/FrontRadio_Eichhorn_2021/analysis/Scan_Times.txt', dtype=str, delimiter=', ', skiprows=1)
         mat_files = StartEndFrameNr([sub], Scan_Times, path)
         #mat_files = os.listdir(path+'matrices '+sub+'/')
         matrices = np.zeros((len(mat_files), 4, 4))
@@ -527,8 +341,7 @@ def Decompose_All(subjs, path):
 
 def DecomposeMat_pm(matrices):
     '''
-    Decomposes all elements of matrices into translation and rotation for 
-    one subject. Averages positive and negative values-
+    Decomposes all elements of matrices into translation and rotation for one subject.
 
     Parameters
     ----------
@@ -557,29 +370,10 @@ def DecomposeMat_pm(matrices):
 
 
 def Decompose_All_pm(subjs, path):
-    '''
-    Decompose all matrices for all subjects specified in subjs. Averages
-    positive and negative values.
-
-    Parameters
-    ----------
-    subjs : list of str
-        List of all subject IDs for which the matrices should be decomposed.
-    path : str
-        path to the files containing matrices.
-
-    Returns
-    -------
-    mean_transl, mean_rot
-        list of mean values for translation and rotation on each axis.
-    std_transl, std_rot
-        list of standard deviations for translation and rotation on each axis
-
-    '''
     
     mean_tr, mean_rot, std_tr, std_rot = [], [], [], []    
     for sub in subjs:
-        Scan_Times = np.loadtxt('./new_calc/Scan_Times.txt', dtype=str, delimiter=', ', skiprows=1)
+        Scan_Times = np.loadtxt('/pc_disk1/moco/StudentProjects/MSc/Hannah/FrontRadio_Eichhorn_2021/analysis/Scan_Times.txt', dtype=str, delimiter=', ', skiprows=1)
         mat_files = StartEndFrameNr([sub], Scan_Times, path)
         #mat_files = os.listdir(path+'matrices '+sub+'/')
         matrices = np.zeros((len(mat_files), 4, 4))
@@ -599,21 +393,6 @@ def Decompose_All_pm(subjs, path):
 
 
 def readtcs2dcs(path):
-    '''
-    Loads cross calibration matrix between tracking and scanner coordinate
-    system.
-
-    Parameters
-    ----------
-    path : str
-        path to the corresponding file.
-
-    Returns
-    -------
-    array
-        calibration transform.
-
-    '''
     A_tcs2dcs = []
     with open(path ,'r') as mat:
         lines = mat.read().splitlines()[-5:]
@@ -629,26 +408,9 @@ def readtcs2dcs(path):
     return np.array(A_tcs2dcs)
 
 
+# given the tim file, the scan start and the time difference between local and remote time, returns the frame number 
+# corresponding to the scan start by adding the time difference th local time to obtain the remote time (the scan time is in remote time)
 def findFrameNumber(path, time, timeToAdd):
-    '''
-    Returns the frame number corresponding to the scan start by adding the 
-    time difference to the local time to obtain the remote time
-
-    Parameters
-    ----------
-    path : str
-        path to tim file.
-    time : str
-        time of scan start.
-    timeToAdd : datetime timedelta
-        time difference between local and remote time.
-
-    Returns
-    -------
-    int
-        frame number of scan start.
-
-    '''
     splitIndex = 0
     with open(path,'r') as f:
         lines = f.read().splitlines()
@@ -669,24 +431,8 @@ def findFrameNumber(path, time, timeToAdd):
  
   
 
+# finds time difference between local and remote time, adds it to the local time and returns the frame number corresponding to the scan start
 def findFrameNumberInLog(path, time):
-    '''
-    Finds the time difference between local and remote time, adds it to the 
-    local time and returns the frame number corresponding to the scan start
-
-    Parameters
-    ----------
-    path : str
-        path to log file.
-    time : str
-        time of scan start.
-
-    Returns
-    -------
-    int
-        frame number of scan start.
-
-    '''
     splitIndex = 0
     timeDiff = ""
     with open(path,'r') as f:
@@ -719,24 +465,11 @@ def findFrameNumberInLog(path, time):
                     test = lineList[2].strip().split(" ")[0]
                 return test
             
+            
+#finds the time difference between local and remote time in the LOG file 
+#(for patients that have a TIM file, this information is at the bottom of the LOG file)
 
 def getTimeDifference(path):
-    '''
-    Finds the time difference between local and remote time in the log file,
-    for patients with a TIM file, this information is at the bottom of the 
-    log file
-
-    Parameters
-    ----------
-    path : str
-        path to log file.
-
-    Returns
-    -------
-    str
-        time difference.
-
-    '''
     with open(path,'r') as f:
         lines = f.read().splitlines()
         line = lines[-2]
@@ -754,46 +487,12 @@ def getTimeDifference(path):
     
     
 def getAcqTimeFromDICOM(path):
-    '''
-    Reads the tag corresponding to acquisition time from the DICOM header
-
-    Parameters
-    ----------
-    path : str
-        path to DICOM.
-
-    Returns
-    -------
-    str
-        acquisition time.
-
-    '''
     ds = pydicom.filereader.dcmread(path)
     return ds.AcquisitionTime
 
 
+# extract all file paths from the tracking folder
 def getFileNames(folder):
-    '''
-    Extracts all relevant file paths (.aln, .tim, .poa, .log) from the folder
-    containting tracking data.
-
-    Parameters
-    ----------
-    folder : str
-        path to the folder.
-
-    Returns
-    -------
-    aln : str
-        filename for .aln file.
-    tim : str
-        filename for .tim file.
-    poa : str
-        filename for .poa file.
-    log : str
-        filename for .log file.
-
-    '''
     poa = ""
     aln = ""
     tim = ""
@@ -811,24 +510,8 @@ def getFileNames(folder):
     return aln, tim, poa, log                        
   
     
+# read a cvs file containing the start time
 def getTime(file,subject):
-    '''
-    Reads the custom-made csv file containing the start times and extracts 
-    the relevant start time
-
-    Parameters
-    ----------
-    file : str
-        filename of csv file.
-    subject : str
-        subject ID.
-
-    Returns
-    -------
-    str
-        start time.
-
-    '''
     with open(file, 'r') as file:
         reader = csv.reader(file)
         for row in reader:
@@ -884,23 +567,6 @@ def transform(path, A_tcs2ecs,startMPRage,savepath):
 
 
 def GetFrameNr(time, path):
-    '''
-    Extracts the frame number corresponding to the start of scan either from
-    .tim or from .log file
-
-    Parameters
-    ----------
-    time : str
-        time of scan start.
-    path : str
-        path to folder with tracking files.
-
-    Returns
-    -------
-    refFrame : int
-        frame number corresponding to start of scan.
-
-    '''
     aln, tim, poa, log  = getFileNames(path)
     
     # get the frame for the corresponding time either from tim or log file
@@ -920,25 +586,6 @@ def GetFrameNr(time, path):
 
 
 def StartEndFrameNr(subjs, Scan_Times, dir_matr):
-    '''
-    Extracts all matrix filenames during MR acquisition (after scan start and 
-    before scan end) for all subjects
-
-    Parameters
-    ----------
-    subjs : list
-        list of subject IDs.
-    Scan_Times : array
-        array of scan times for each subject.
-    dir_matr : str
-        path to directory with matrices for all subjects.
-
-    Returns
-    -------
-    names_in_seq : list
-        List of all matrix filenames.
-
-    '''
     for sub in subjs:
         # look up frame numbers corrsponding to start and end times:
         ind = np.where(Scan_Times[:,0]==sub)[0]
@@ -946,7 +593,7 @@ def StartEndFrameNr(subjs, Scan_Times, dir_matr):
         start_times, end_times = st[:,2], st[:,3]
         start_frames, end_frames = [], []
         for start, end in zip(start_times, end_times):
-            path = '/mnt/mocodata1/MoCoOther/Andreea-Project/moco/subjects data/'+sub+'/'
+            path = '/mnt/mocodata1/BUF/DataTCL/'+sub+'/'
             test_start = GetFrameNr(start, path)
             print(test_start)
             test_end = GetFrameNr(end, path)
@@ -996,36 +643,13 @@ def StartEndFrameNr(subjs, Scan_Times, dir_matr):
     
     
 def StartEndFrameNr2(sub, Scan_Times):
-    '''
-    Extracts start and end times as well as start and end frame numbers for 
-    the subjects sub
-
-    Parameters
-    ----------
-    sub : str
-        subject ID.
-    Scan_Times : array
-        array of scan times for each subject.
-
-    Returns
-    -------
-    start_times : str
-        time of scan start.
-    end_times : str
-        time of scan end.
-    start_frames : int
-        frame number of scan start.
-    end_frames : int
-        frame number of scan end.
-
-    '''
     # look up frame numbers corrsponding to start and end times:
     ind = np.where(Scan_Times[:,0]==sub)[0]
     st = Scan_Times[ind]
     start_times, end_times = st[:,2], st[:,3]
     start_frames, end_frames = [], []
     for start, end in zip(start_times, end_times):
-        path = '/mnt/mocodata1/MoCoOther/Andreea-Project/moco/subjects data/'+sub+'/'
+        path = '/mnt/mocodata1/BUF/DataTCL/'+sub+'/'
         test_start = GetFrameNr(start, path)
         test_end = GetFrameNr(end, path)
         if test_start is None:
@@ -1061,39 +685,21 @@ def StartEndFrameNr2(sub, Scan_Times):
     
 
 def barplot_annotate_brackets(num1, num2, data, center, height, yerr=None, dh=.05, barh=.05, fs=None, maxasterix=None):
-    '''
-    Annotate barplot with p-values
+    """ 
+    Annotate barplot with p-values.
 
-    Parameters
-    ----------
-    num1 : int
-        number of left bar to put bracket over.
-    num2 : int
-        number of right bar to put bracket over.
-    data : str or float
-        string to write or number for generating asterixes.
-    center : array
-        centers of all bars (like plt.bar() input).
-    height : array
-        heights of all bars (like plt.bar() input).
-    yerr : array, optional
-        yerrs of all bars (like plt.bar() input). The default is None.
-    dh : float, optional
-        height offset over bar / bar + yerr in axes coordinates (0 to 1). The 
-        default is .05.
-    barh : float, optional
-        bar height in axes coordinates (0 to 1). The default is .05.
-    fs : float, optional
-        font size. The default is None.
-    maxasterix : int, optional
-        maximum number of asterixes to write (for very small p-values). The 
-        default is None.
+    :param num1: number of left bar to put bracket over
+    :param num2: number of right bar to put bracket over
+    :param data: string to write or number for generating asterixes
+    :param center: centers of all bars (like plt.bar() input)
+    :param height: heights of all bars (like plt.bar() input)
+    :param yerr: yerrs of all bars (like plt.bar() input)
+    :param dh: height offset over bar / bar + yerr in axes coordinates (0 to 1)
+    :param barh: bar height in axes coordinates (0 to 1)
+    :param fs: font size
+    :param maxasterix: maximum number of asterixes to write (for very small p-values)
+    """
 
-    Returns
-    -------
-    None.
-
-    '''
     if type(data) is str:
         text = data
     else:
