@@ -5,6 +5,9 @@ Code for the work on the MoCo project at Neurobiology Research Unit, Copenhagen 
 ### ChildrenHeadMotionMRI:
 Characterisation of children's head motion for Magnetic Resonance Imaging with and without general anaesthesia
 
+### ImageQualityMetrics:
+Evaluating the match of image quality metrics with radiological assessment in a dataset with and without motion artifacts
+
 ### MotionCorrectedClinicalMRProtocol:
 Evaluating the performance of markerless prospective motion correction and selective reacquisition in a clinical protocol for pediatric brain MRI
 
