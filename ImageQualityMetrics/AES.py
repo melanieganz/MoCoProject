@@ -1,5 +1,5 @@
 '''
-Simon Chemnitz Thomson's code to calculate the metric Average Edge Strength. 
+Simon Chemnitz-Thomsen's code to calculate the metric Average Edge Strength. 
 
 
 Code is based on the article:
