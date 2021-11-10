@@ -1,5 +1,5 @@
 '''
-Simon Chemnitz Thomson's code to calculate the metric Co-occurence entropy
+Simon Chemnitz-Thomsen's code to calculate the metric Co-occurence entropy
 
 Code is based on the article:
 Quantitative framework for prospective motion correction evaluation
