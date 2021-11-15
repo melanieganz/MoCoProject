@@ -43,12 +43,12 @@ def aes(img, brainmask = None, sigma=np.sqrt(2), n_levels = 128, bin = False, cr
     #Bin image if bin is True
     if bin:
         img = bin_img(img, n_levels = n_levels)
-    #Centered Gradient kernel in the x-direction
-    x_kern = np.array([[-1,-1,-1],
+    #Centered Gradient kernel in the y-direction
+    y_kern = np.array([[-1,-1,-1],
                        [0,0,0],
                        [1,1,1]])
-    #Centered Gradient kernel in the y-direction
-    y_kern = x_kern.T
+    #Centered Gradient kernel in the x-direction
+    x_kern = y_kern.T
 
     #Shape of volume/img
     vol_shape = np.shape(img)
