@@ -173,7 +173,7 @@ def SortFiles(file):
     ind = []
     for i in range(len(file)):
         base = os.path.basename(file[i])
-        if len(base)<30:
+        if len(base)<50:
             ind.append(i)
     file = np.array(file)
     file = file[ind]
