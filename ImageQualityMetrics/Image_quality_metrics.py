@@ -16,7 +16,7 @@ from ImageEntropy import iment
 from GradientEntropy import gradent
 
 
-def Compute_Metric(filename, brainmask_file, metric, ref_file=False, 
+def Compute_Metric(filename, metric, brainmask_file=False, ref_file=False, 
                    normal=True):
     '''
     
@@ -25,12 +25,14 @@ def Compute_Metric(filename, brainmask_file, metric, ref_file=False,
     ----------
     filename : str
         filename of the nifti image which is supposed to be evaluated.
-    brainmask_file : str
-        filename for the corresponding brainmask. If it is set to False, the
-        metric will be calculated on the whole image.
     metric : str
         which metric to calculate. Please choose between 'SSIM', 'PSNR', 
-        'Tenengrad', 'AES', 'GradEntropy', 'ImgEntropy' and 'CoEnt'.
+        'Tenengrad', 'AES', 'GradEntropy', 'ImgEntropy', 'CoEnt' and 'all'. 
+        If the option 'all' is chosen, all metrics are returned in a list in 
+        the order: SSIM, PSNR, Tenengrad, AES, GradEntropy, ImgEntropy, CoEnt.
+    brainmask_file : str, optional.
+        filename for the corresponding brainmask. If it is set to False, the
+        metric will be calculated on the whole image.Tge default is False.
     ref_file : str, optional
         filename for the reference nifti scan which the image is supposed to 
         be compared to. This is only needed for SSIM and PSNR. The default is 
@@ -62,51 +64,60 @@ def Compute_Metric(filename, brainmask_file, metric, ref_file=False,
     if ref_file != False:
         ref = nib.load(ref_file).get_fdata().astype(np.uint16)
     
-    if metric in ['SSIM', 'PSNR']:
-        brainmask_fl = brainmask.flatten()
-        if brainmask_file != False:
-            d_ref = ref.flatten()
-            ref_ = d_ref[brainmask_fl>0]
-            data_ref = ref_
-            dat = img.flatten()
-            img_ = dat[brainmask_fl>0]
-            data_img = img_
-        else:
-            data_ref = ref
-            data_img = img
-        
-        if normal == True:
-            print('Values calculated on normalized images')
-            mean_ref = np.mean(data_ref)
-            std_ref = np.std(data_ref)
-            data_ref = (data_ref-mean_ref)/std_ref
-            
-            mean_img = np.mean(data_img)
-            std_img = np.std(data_img)
-            data_img = (data_img-mean_img)/std_img
-        
-        peak = np.amax(data_ref)
-        if metric == 'PSNR':
-            res = metric_dict[metric](data_ref, data_img, data_range=peak)
-        else:
-            res = metric_dict[metric](data_ref, data_img, data_range=peak,
-                                      gaussian_weights=True)
+    if metric == 'all':
+        metrics = ['SSIM', 'PSNR', 'Tenengrad', 'AES', 'GradEntropy', 
+                   'ImgEntropy', 'CoEnt']
+    else:
+        metrics = [metric]
     
-    if metric in ['Tenengrad', 'GradEntropy', 'ImgEntropy']:
-        if normal == True:
-            mean_img = np.mean(img)
-            std_img = np.std(img)
-            img_n = (img-mean_img)/std_img
-        else:
-            img_n = img
+    res = []
+    for m in metrics:
+        if m in ['SSIM', 'PSNR']:
+            brainmask_fl = brainmask.flatten()
+            if brainmask_file != False:
+                d_ref = ref.flatten()
+                ref_ = d_ref[brainmask_fl>0]
+                data_ref = ref_
+                dat = img.flatten()
+                img_ = dat[brainmask_fl>0]
+                data_img = img_
+            else:
+                data_ref = ref
+                data_img = img
             
-        res = metric_dict[metric](img_n, brainmask)
+            if normal == True:
+                print('Values calculated on normalized images')
+                mean_ref = np.mean(data_ref)
+                std_ref = np.std(data_ref)
+                data_ref = (data_ref-mean_ref)/std_ref
+                
+                mean_img = np.mean(data_img)
+                std_img = np.std(data_img)
+                data_img = (data_img-mean_img)/std_img
+            
+            peak = np.amax(data_ref)
+            if m == 'PSNR':
+                res.append(metric_dict[m](data_ref, data_img, 
+                                               data_range=peak))
+            else:
+                res.append(metric_dict[m](data_ref, data_img, 
+                                               data_range=peak, 
+                                               gaussian_weights=True))
         
-    if metric in ['AES', 'CoEnt']:
-        if brainmask_file == False:
-            brainmask = None
-        res = metric_dict[metric](img, brainmask)
-    
+        if m in ['Tenengrad', 'GradEntropy', 'ImgEntropy']:
+            if normal == True:
+                mean_img = np.mean(img)
+                std_img = np.std(img)
+                img_n = (img-mean_img)/std_img
+            else:
+                img_n = img
+                
+            res.append(metric_dict[m](img_n, brainmask))
+            
+        if m in ['AES', 'CoEnt']:
+            if brainmask_file == False:
+                brainmask = None
+            res.append(metric_dict[m](img, brainmask))
     
     return res
 
