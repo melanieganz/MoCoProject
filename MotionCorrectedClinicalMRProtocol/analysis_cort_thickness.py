@@ -1,3 +1,4 @@
+'''Warning - this script reruns FreeSurfers recon-all on all images and therefore takes very long to run'''
 import numpy as np
 import subprocess
 import os
@@ -12,24 +13,23 @@ run_long = False
 
 names = []
 for i in range(1,10):
-    names.append('HC_0'+str(i)+'/')
+    names.append('Subject_0'+str(i)+'/')
 for i in range(10,20):
-    names.append('HC_'+str(i)+'/')
+    names.append('Subject_'+str(i)+'/')
 for i in range(20,23):
-    names.append('HC_'+str(i)+'/')
+    names.append('Subject_'+str(i)+'/')
     
     
 ''' (1)  Run ReconAll for the motion RR scans in order to compare freesurfer estimates'''
 
 if run_RR == True:
     for name in names:
-        # define directories:
-        dicom_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+name+'/'   
-        nifti_dir = '/data1/hannah/NIFTIS/'+name+'/'
+        # define directories: 
+        nifti_dir = '../BIDSdata_defaced/'+name+'/'
         
         
             
-        list_sequ = os.listdir(dicom_dir)
+        list_sequ = os.listdir(nifti_dir)
         sequences = [x for x in list_sequ if x.startswith('TCLMOCO')] 
         
         # check that nifti directory exists, otherwise make a new nifti directory 
@@ -41,7 +41,7 @@ if run_RR == True:
         for seq in sequences:
             if 'T1_MPR' not in seq:
                 continue
-            dcm = os.listdir(dicom_dir + seq)[0]
+            #dcm = os.listdir(nifti_dir + seq)[0]
             #in_volume = dicom_dir + seq + '/' + dcm
             out_volume = nifti_dir + 'TCL'+name+'_' + seq + '.nii'
             if seq.startswith('TCLMOCO_OFF_STILL_T1_MPR'):
@@ -79,12 +79,12 @@ if run_RR == True:
 if run_no_RR:
     for name in names:
         # define directories:
-        dicom_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+name+'/'   
-        nifti_dir = '/data1/hannah/NIFTIS/'+name+'/'
+        #dicom_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+name+'/'   
+        nifti_dir = '../BIDSdata_defaced/'+name+'/'
         
         
             
-        list_sequ = os.listdir(dicom_dir)
+        list_sequ = os.listdir(nifti_dir)
         sequences = [x for x in list_sequ if x.startswith('TCLMOCO')] 
         
         # check that nifti directory exists, otherwise make a new nifti directory 
@@ -123,7 +123,7 @@ if run_no_RR:
                     print('############')
                     
                     
-                    with open('/data1/hannah/Surface_Estimates/Status_Recon_All.txt', 'a') as f:
+                    with open('/mnt/mocodata1/Data_Analysis/Surface_Estimates/Status_Recon_All.txt', 'a') as f:
                         f.write(subj_id+' done at '+str(datetime.datetime.now())+'\n')
 
 
@@ -131,7 +131,7 @@ if run_no_RR:
 ''' (3) Check whether cross-sectional runs were successful. If not, run them 
 again. Otherwise run longitudinal stream. Afterwards, check longitudinal runs '''
 
-outDir = '/data1/hannah/Surface_Estimates/'
+outDir = '/mnt/mocodata1/Data_Analysis/Surface_Estimates/'
 
 if run_long:
     for name in names:
@@ -187,7 +187,7 @@ if run_long:
             if f != 'X_BASE_'+name[:-1]:
                 subprocess.run('recon-all -long '+f+' X_BASE_'+name[:-1]+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all', shell=True)
     
-                with open('/data1/hannah/Surface_Estimates/Status_Long_ReRun.txt', 'a') as file:
+                with open('/mnt/mocodata1/Data_Analysis/Surface_Estimates/Status_Long_ReRun.txt', 'a') as file:
                     file.write(f+'_RR re-run done at '+str(datetime.datetime.now())+'\n')
         
     
@@ -247,7 +247,7 @@ if run == True:
     #RMS for MoCo Off still:
     descr = ['ON_STILL_', 'ON_NOD_',  'OFF_NOD_', 'ON_SHAKE_', 'OFF_SHAKE_']
     motion = ['STILL', 'NOD', 'NOD', 'SHAKE', 'SHAKE']
-    files = glob.glob('/data1/hannah/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
+    files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
     file = SortFiles(files)[0]
     metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
     subj = []
@@ -261,7 +261,7 @@ if run == True:
 
     for d, m in zip(descr, motion):
         lines = []
-        files = glob.glob('/data1/hannah/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
+        files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
         files = [f for f in files if 'mid' not in f]    # sort out all files 
         # where displacement was caluclated relative to mid of acquisition
         file = SortFiles(files)[0]
@@ -291,7 +291,7 @@ if run == True:
     '''Create FSGD file / design matrix for scans with reacquisition: '''
     descr = ['ON_NOD_', 'ON_SHAKE_', 'OFF_NOD_', 'OFF_SHAKE_']
     motion = ['NOD', 'SHAKE', 'NOD', 'SHAKE']
-    files = glob.glob('/data1/hannah/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
+    files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
     file = SortFiles(files)[0]
     metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
     subj = []
@@ -305,7 +305,7 @@ if run == True:
 
     for d, m in zip(descr, motion):
         lines = []
-        files = glob.glob('/data1/hannah/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
+        files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
         file = SortFiles(files)[0]
         if d[:2] == 'OF':
             metrics = np.loadtxt(file, unpack=True, usecols=0)
@@ -381,7 +381,7 @@ if run == True:
     #RMS for MoCo Off still:
     descr = ['ON_STILL_', 'ON_NOD_',  'OFF_NOD_', 'ON_SHAKE_', 'OFF_SHAKE_']
     motion = ['STILL', 'NOD', 'NOD', 'SHAKE', 'SHAKE']
-    files = glob.glob('/data1/hannah/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
+    files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
     file = SortFiles(files)[0]
     metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
     subj = []
@@ -395,7 +395,7 @@ if run == True:
 
     for d, m in zip(descr, motion):
         lines = []
-        files = glob.glob('/data1/hannah/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
+        files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
         file = SortFiles(files)[0]
         if d[:2] == 'OF':
             metrics = np.loadtxt(file, unpack=True, usecols=0)
@@ -463,8 +463,3 @@ if run == True:
         subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/rh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'sig_fdr.mgh:overlay_threshold=1.301,6 -viewport 3d', shell=True)
         folder = outDir+'rh.'+d+'.glmdir/'
         subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/rh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'beta.mgh:overlay_threshold=0.04,0.2 -viewport 3d', shell=True)
-
-
-
-
-
