@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 from scipy.stats import wilcoxon
 from statsmodels.stats.multitest import multipletests
 
@@ -52,6 +53,8 @@ def PerformWilcoxonMotion(type_metric, motion, values_metrics, out_dir, save, op
             stat.append(tmp)
     
     text = np.array(text)
+    if not os.path.exists(out_dir+'MotionMetrics_'+motion+'/'):
+        os.makedirs(out_dir+'MotionMetrics_'+motion+'/')
     np.savetxt(out_dir+'MotionMetrics_'+motion+'/ParametricTests'+save+'.txt', text, fmt='%s')
     
     # effect size:
@@ -157,8 +160,12 @@ def PerformWilcoxonAllImg(type_metric, values, sequ, out_dir, save, option=False
     text = np.array(text, dtype=object)
     if option == 'diff':
         tmp = out_dir+'ParametricTests/'+sequ+'/Tests_diff_'+type_metric+save+'.txt'
+        if not os.path.exists(out_dir+'ParametricTests/'+sequ+'/'):
+            os.makedirs(out_dir+'ParametricTests/'+sequ+'/')
         np.savetxt(tmp, text, fmt='%s')
     else:
+        if not os.path.exists(out_dir+'ParametricTests/'+sequ+'/'):
+            os.makedirs(out_dir+'ParametricTests/'+sequ+'/')
         np.savetxt(out_dir+'ParametricTests/'+sequ+'/Tests_'+type_metric+save+'.txt', text, fmt='%s')
 
     return p_values_cor, rej, ind, altern
