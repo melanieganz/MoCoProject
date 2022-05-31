@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import pydicom
 import glob
+import json
 import datetime as dt
 from transforms3d.affines import decompose
 from transforms3d.euler import mat2euler
@@ -42,6 +43,29 @@ def ParametersFromTransf(A):
     R = np.array([al*180/np.pi, be*180/np.pi, ga*180/np.pi])
     
     return np.array(T), R, R_
+
+
+def GetAcquFromJSON(filename):
+    '''
+    Extract the acquisition time from the JSON document.
+
+    Parameters
+    ----------
+    filename : str
+        path to the JSON file.
+
+    Returns
+    -------
+    str
+        acquisition time.
+
+    '''
+    
+    with open(filename, 'r') as f:
+        data = f.read()
+    obj = json.loads(data)
+    
+    return obj['AcquisitionTime']
     
 
 def Add_Time(start_time, add_min=5, add_sec=0):
@@ -128,7 +152,7 @@ def search_two_strings_in_file(file_name, strings_to_search):
             return tmp
         
 
-def FindALN(subj, name, dcm_dir=None, track_dir=None):
+def FindALN(subj, name, bids_dir=None, track_dir=None):
     '''
     Finds the most recent cross calibration for a given sequence.
 
@@ -138,7 +162,7 @@ def FindALN(subj, name, dcm_dir=None, track_dir=None):
         subject ID.
     name : str
         name of sequence.
-    dcm_dir : str (optional)
+    bids_dir : str (optional)
         directory of DICOM files. If None, then it is set to default: 
         '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj
     track_dir : str (optional)
@@ -151,16 +175,14 @@ def FindALN(subj, name, dcm_dir=None, track_dir=None):
         filename of ALN file.
 
     '''
-    if dcm_dir is None:
-        dcm_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj  
+    if bids_dir is None:
+        bids_dir = '../BIDSdata_defaced/'+subj  
     if track_dir is None:
-        track_dir = '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+        track_dir = '../TCLData/'+subj
     
     all_aln = glob.glob(track_dir+'*ALN*.tsa')
-    dcm = glob.glob(dcm_dir+'*'+name+'*/*.IMA')[0]  
-    dcm_read = pydicom.dcmread(dcm)
-    acqu_time = dcm_read.AcquisitionTime
-    acqu_time = acqu_time[0:2]+':'+acqu_time[2:4]+':'+acqu_time[4:]
+    file = glob.glob(bids_dir+'*'+name+'*.json')[0] 
+    acqu_time = GetAcquFromJSON(file)
     
     diff, aln_file = [], []
     for a in all_aln:
@@ -185,7 +207,7 @@ def FindALN(subj, name, dcm_dir=None, track_dir=None):
     return aln_file[ind]
 
 
-def FindPOA_TIM(subj, name, dcm_dir=None, track_dir=None):
+def FindPOA_TIM(subj, name, bids_dir=None, track_dir=None):
     '''
     Find the current POA, TIM and MOT files corresponding to the given sequence.
 
@@ -195,12 +217,12 @@ def FindPOA_TIM(subj, name, dcm_dir=None, track_dir=None):
         subject ID.
     name : str
         name of sequence.
-    dcm_dir : str (optional)
+    bids_dir : str (optional)
         directory of DICOM files. If None, then it is set to default: 
-        '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj
+        '../BIDSdata_defaced/'+subj
     track_dir : str (optional)
         directory of motion tracking files. If None, then it is set to default: 
-        '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+        '../TCLData/'+subj
 
     Returns
     -------
@@ -208,19 +230,24 @@ def FindPOA_TIM(subj, name, dcm_dir=None, track_dir=None):
         POA file (matrices).
     tim : str
         TIM file (time and frame number).
-    tim : str
+    mot : str
         MOT file (sequence labels and start times).
 
     '''
-    if dcm_dir is None:
-        dcm_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj  
+    
+    if bids_dir is None:
+        bids_dir = '../BIDSdata_defaced/'+subj   
     if track_dir is None:
-        track_dir = '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+        track_dir = '../TCLData/'+subj
     
     all_tim = glob.glob(track_dir+'*TIM*.tst')
-    dcm = glob.glob(dcm_dir+'*'+name+'*/*.IMA')[0]  
-    dcm_read = pydicom.dcmread(dcm)
-    acqu_time = float(dcm_read.AcquisitionTime)
+    file = glob.glob(bids_dir+'*'+name+'*.json')[0] 
+    acqu_time_j = GetAcquFromJSON(file)
+    acqu_time = float(acqu_time_j[0:2]+acqu_time_j[3:5]+acqu_time_j[6:])
+    #json file for time XX:XX:0Y.XXX is saved as XX:XX:Y.XXX
+    if float(acqu_time_j[6:])<10:
+        acqu_time = float(acqu_time_j[0:2]+acqu_time_j[3:5]+'0'+acqu_time_j[6:])
+    
     
     for t in all_tim:
         find = int(search_string_in_file(t, 'Point Cloud Number')[0][0])
@@ -230,6 +257,7 @@ def FindPOA_TIM(subj, name, dcm_dir=None, track_dir=None):
         tmp2 = lines[-2]
         start = float(tmp1[-13:][0:2]+tmp1[-13:][3:5]+tmp1[-13:][6:])
         end = float(tmp2[-13:][0:2]+tmp2[-13:][3:5]+tmp2[-13:][6:])
+                       
         if acqu_time > start and acqu_time < end:
             tim = t
             
@@ -264,7 +292,7 @@ def GetTimeFromTCL(mot, name, subj=None, track_dir=None):
     '''
     
     if track_dir is None:
-        track_dir = '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+        track_dir = '../BIDSdata_defaced/'+subj  
     
     find = int(search_string_in_file(mot, 'Label Position')[0][0])
     
@@ -327,7 +355,7 @@ def GetTimeFromTxt(sub, name):
     
     #find the file with the corresponding scan scart:
     sequ = name.split('*')[1]
-    file = '/data1/hannah/Motion_Estimates/ScanEndTimes_'+sequ+'07_30.txt'
+    file = '../TCLData/ScanEndTimes_'+sequ+'07_30.txt'
     
     # search for sub and name:
     find = int(search_string_in_file(file, sub)[0][0])
@@ -341,12 +369,12 @@ def GetTimeFromTxt(sub, name):
             break
     if time == None:
         print(name[:-1]+' cannot be found for '+sub+' in file: '+file)
-        print('Does the name conatin an *?')
+        print('Does the name contain an *?')
 
     return time
 
 
-def FindFrameNr(tim, subj, name, seq_type, mot, dcm_dir=None, track_dir=None):
+def FindFrameNr(tim, subj, name, seq_type, mot, bids_dir=None, track_dir=None):
     '''
     Find frame number corresponding to start and end of acquisition of the
     sequence specified in name
@@ -363,7 +391,7 @@ def FindFrameNr(tim, subj, name, seq_type, mot, dcm_dir=None, track_dir=None):
         description for look-up table scan times.
     mot : str
         filename of the '_MOT.tsm' file.
-    dcm_dir : str, optional
+    bids_dir : str, optional
         directory of dicom files. The default is None.
     track_dir : str, optional
         Path to the folder with tracking data. The default is None.
@@ -377,20 +405,24 @@ def FindFrameNr(tim, subj, name, seq_type, mot, dcm_dir=None, track_dir=None):
 
     '''
     
-    if dcm_dir is None:
-        dcm_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj 
+    if bids_dir is None:
+        bids_dir = '../BIDSdata_defaced/'+subj  
     
-    dcm = glob.glob(dcm_dir+'*'+name+'*/*.IMA')[0]  
-    dcm_read = pydicom.dcmread(dcm)
-    acqu_time = dcm_read.AcquisitionTime
+    file = glob.glob(bids_dir+'*'+name+'*.json')[0] 
+    acqu_time_j = GetAcquFromJSON(file)
+    #json file for time XX:XX:0Y.XXX is saved as XX:XX:Y.XXX
+    if float(acqu_time_j[6:])<10:
+        acqu_time = acqu_time_j[0:6]+'0'+acqu_time_j[6:]
+    else:
+        acqu_time = acqu_time_j
     
     end_time = GetTimeFromTxt(subj, name)
     
     # add time to start of acquisition:
     start_time = acqu_time
-    start_time = start_time[0:2]+':'+start_time[2:4]+':'+start_time[4:]
+    #start_time = start_time[0:2]+':'+start_time[2:4]+':'+start_time[4:]
     end_time = end_time[0:2]+':'+end_time[2:4]+':'+end_time[4:]
-    print(start_time, end_time)
+    # print(start_time, end_time)
     
     frames, tmp1, tmp2, remote = np.loadtxt(tim, skiprows=11, dtype=str, unpack=True)
     frame_start = frames[remote>start_time][0]
@@ -399,7 +431,7 @@ def FindFrameNr(tim, subj, name, seq_type, mot, dcm_dir=None, track_dir=None):
     return frame_start, frame_end
 
 
-def GetMatrices(tim, poa, mot, subj, name, seq_type, dcm_dir=None):
+def GetMatrices(tim, poa, mot, subj, name, seq_type, bids_dir=None):
     '''
     Import matrices from poa file (only those during acquisition of sequence 
     specified in name)
@@ -418,7 +450,7 @@ def GetMatrices(tim, poa, mot, subj, name, seq_type, dcm_dir=None):
         name describing the sequence of interest.
     seq_type : str
         description for look-up table scan times.
-    dcm_dir : str, optional
+    bids_dir : str, optional
         directory of dicom files. The default is None.
 
     Returns
@@ -430,7 +462,7 @@ def GetMatrices(tim, poa, mot, subj, name, seq_type, dcm_dir=None):
 
     '''
     
-    frame_start, frame_end = FindFrameNr(tim, subj, name, seq_type, mot, dcm_dir)
+    frame_start, frame_end = FindFrameNr(tim, subj, name, seq_type, mot, bids_dir)
     frame_start = int(frame_start)
     frame_end = int(frame_end)
     
@@ -483,16 +515,16 @@ def ExtractMotionParForScan(subj, name, seq_type):
 
     '''
     
-    dcm_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj  
-    track_dir = '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+    bids_dir = '../BIDSdata_defaced/'+subj   
+    track_dir = '../TCLData/'+subj
     
     name_ = name
     if 'DIFF' in name:
         name_ = name.replace('DIFF', 'TRACEW_B0')
-    mat_file, time_file, mot_file = FindPOA_TIM(subj, name_, dcm_dir, track_dir)
+    mat_file, time_file, mot_file = FindPOA_TIM(subj, name_, bids_dir, track_dir)
     
     frame_nr, mat, times = GetMatrices(time_file, mat_file, mot_file, subj, 
-                                       name, seq_type, dcm_dir)
+                                       name, seq_type, bids_dir)
     
     
     
@@ -511,7 +543,7 @@ def ExtractMotionParForScan(subj, name, seq_type):
     return times, transl, rot
 
 
-def ExtractMotionMatForScan(subj, name, seq_type, track_dir=None, dcm_dir=None):
+def ExtractMotionMatForScan(subj, name, seq_type, track_dir=None, bids_dir=None):
     '''
     Extract Motion matrices and centroid coordinates (rist time point) for a 
     specific scan
@@ -524,7 +556,7 @@ def ExtractMotionMatForScan(subj, name, seq_type, track_dir=None, dcm_dir=None):
         scan for which to extract the motion data, use 'None' to extract the motion data for the whole session.
     seq_type : string
         type of sequence (e.g. 'STILL_T1_MPR') for determining scan time
-    dcm_dir : str (optional)
+    bids_dir : str (optional)
         directory of DICOM files. If None, then it is set to default: 
         '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj
     track_dir : str (optional)
@@ -542,18 +574,18 @@ def ExtractMotionMatForScan(subj, name, seq_type, track_dir=None, dcm_dir=None):
         RAS system!
 
     '''
-    if dcm_dir is None:
-        dcm_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj  
+    if bids_dir is None:
+        bids_dir = '../BIDSdata_defaced/'+subj   
     if track_dir is None:
-        track_dir = '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+        track_dir = '../TCLData/'+subj
     
     name_ = name
     if 'DIFF' in name:
         name_ = name.replace('DIFF', 'TRACEW_B0')
-    mat_file, time_file, mot_file = FindPOA_TIM(subj, name_, dcm_dir, track_dir)
+    mat_file, time_file, mot_file = FindPOA_TIM(subj, name_, bids_dir, track_dir)
     
     frame_nr, mat, times = GetMatrices(time_file, mat_file, mot_file, subj, 
-                                       name, seq_type, dcm_dir)
+                                       name, seq_type, bids_dir)
     
     track_file = glob.glob(track_dir+'*MOT.tsm')[0]
     
@@ -573,7 +605,7 @@ def ExtractMotionMatForScan(subj, name, seq_type, track_dir=None, dcm_dir=None):
     return coord, times, mat
 
 
-def CalcMotionMetricsforScan(subj, name, seq_type, track_dir=None, dcm_dir=None, center=False, average=False):
+def CalcMotionMetricsforScan(subj, name, seq_type, track_dir=None, bids_dir=None, center=False, average=False):
     '''
     Loads the motion data (matrices) and calculates the motion metrics for 
     a sequence specified in name and seq_type.
@@ -586,7 +618,7 @@ def CalcMotionMetricsforScan(subj, name, seq_type, track_dir=None, dcm_dir=None,
         scan for which to extract the motion data, use 'None' to extract the motion data for the whole session.
     seq_type : string
         type of sequence (e.g. 'STILL_T1_MPR') for determining scan time
-    dcm_dir : str (optional)
+    bids_dir : str (optional)
         directory of DICOM files. If None, then it is set to default: 
         '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj
     track_dir : str (optional)
@@ -640,5 +672,4 @@ def CalcMotionMetricsforScan(subj, name, seq_type, track_dir=None, dcm_dir=None,
     max_disp = np.max(magn)
     
     return magn, RMS, med_disp, max_disp
-
 
