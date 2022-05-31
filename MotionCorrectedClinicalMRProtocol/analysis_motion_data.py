@@ -1,7 +1,9 @@
+'''Warning - this script loads a bunch of motion data points and therefore takes a while to run e.g. over night'''
 import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import glob
+import os
 from statsmodels.stats.multitest import multipletests
 from motion_estimates import CalcMotionMetricsforScan
 from utils import Show_Stars, SortFiles, MakeBoxplot
@@ -10,20 +12,20 @@ from statistical_tests import PerformWilcoxonMotion
 
 
 # Define directories, sequences and volunteers to analyse:
-out_dir = '/data1/hannah/Motion_Estimates/Comparison/'
+out_dir = '../Results/Motion_Estimates/'
 
 subdir = [] 
 for i in range(1,10):
-    subdir.append('HC_0'+str(i)+'/')
+    subdir.append('Subject_0'+str(i)+'/')
 for i in range(10,20):
-    subdir.append('HC_'+str(i)+'/')
+    subdir.append('Subject_'+str(i)+'/')
 for i in range(20,23):
-    subdir.append('HC_'+str(i)+'/')
+    subdir.append('Subject_'+str(i)+'/')
 sequs = ['T1_MPR', 'T2_TSE', 'T1_TIRM', 'T2_FLAIR', 'T2STAR', 'DIFF']
 
 
-save = '_08_05'   
-new_calc = True
+save = '_2022_05_11'   
+new_calc = False
 plot = True
 
 
@@ -39,19 +41,27 @@ if new_calc:
             save_list = []
             print(sequ, mot)
             for subj in subdir:
-                if sequ in ['DIFF', 'T2_FLAIR'] and subj in ['HC_0'+str(i)+'/' for i in range(1,10)]:
-                    continue
-                if sequ in ['DIFF', 'T2_FLAIR'] and subj in ['HC_'+str(i)+'/' for i in range(10,13)]:
-                    continue
-                if sequ == 'T2STAR' and subj in ['HC_20/', 'HC_21/', 'HC_22/']:
-                    continue
+                ##DEBUG
+                print('DEBUG:')
+                print(subj)
+                
+                # skip all volunteers where the following sequences were not acquired
+                if sequ in ['DIFF', 'T2_FLAIR', 'T2STAR']:
+                    #print('inside first if')
+                    tmp = os.listdir('../BIDSdata_defaced/'+subj+'/')
+                    tmp_ = ''
+                    test = sequ
+                    if sequ == 'DIFF':
+                        test = 'TRACEW_B0'
+                    if test not in tmp_.join(tmp):
+                        continue
+                
                 # MoCo On:
                 name = 'MOCO_ON_'+mot+'_*'+sequ+'_'   
                 seq_type = mot+'_'+sequ    
                 if sequ == 'TRACEW_B0':
                     seq_type = mot+'_DIFF'
                             
-                
                 magn_On, RMS_On, med_disp_On, max_disp_On = CalcMotionMetricsforScan(subj, name, 
                                                                                      seq_type)
                 
@@ -68,6 +78,8 @@ if new_calc:
                 save_list.append([RMS_Off, med_disp_Off, max_disp_Off, RMS_On, med_disp_On, max_disp_On])
         
             header = 'RMS_Off med_disp_Off max_disp_Off RMS_On med_disp_On max_disp_On'
+            if not os.path.exists(out_dir+'MotionMetrics_'+mot+'/'):
+                os.makedirs(out_dir+'MotionMetrics_'+mot+'/')
             np.savetxt(out_dir+'MotionMetrics_'+mot+'/'+sequ+save+'.txt', save_list, header=header)
 
 
@@ -100,7 +112,7 @@ for mot in ['STILL', 'NOD', 'SHAKE']:
         descr.append(sequ)
         descr.append(sequ)
         
-    p_val, ind, alt, ES = PerformWilcoxonMotion(['RMS', 'Med', 'Max'], mot, [RMS, median, maxim], out_dir, save,)
+    p_val, ind, alt, ES = PerformWilcoxonMotion(['RMS', 'Med', 'Max'], mot, [RMS, median, maxim], out_dir, save)
     p_values.append(p_val)
     effect_size.append(ES)
         
@@ -127,7 +139,6 @@ for mot in ['STILL', 'NOD']:
         if len(file)>0:
             file = SortFiles(file)
             
-        #print(file[0])
         metrics = np.loadtxt(file[0], unpack=True, skiprows=1)
         RMS.append(metrics[0])
         RMS.append(metrics[3])
@@ -147,7 +158,6 @@ for mot in ['STILL', 'NOD']:
         if len(file)>0:
             file = SortFiles(file)
             
-        #print(file[0])
         metrics = np.loadtxt(file[0], unpack=True, skiprows=1)
         RMS_s.append(metrics[0])
         RMS_s.append(metrics[3])
@@ -191,7 +201,6 @@ for mot in ['STILL', 'NOD']:
     
     if mot=='STILL':
         plt.figure(figsize=(10,10))
-        #plt.suptitle(mot+' scans')
         plt.subplot(3,1,1)
     else:
         plt.figure(figsize=(13, 11.5))
@@ -205,7 +214,6 @@ for mot in ['STILL', 'NOD']:
                 plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
         for y1, y2 in zip(RMS[8], RMS[9]):
                 plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
-    #plt.title('RMS displacement')
     plt.title(mot+' scans', fontsize=17)
     plt.ylabel('RMS displacement [mm]')
     plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
@@ -236,7 +244,6 @@ for mot in ['STILL', 'NOD']:
                 plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
         for y1, y2 in zip(median[8], median[9]):
                 plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
-    #plt.title('Median displacement')
     plt.ylabel('Median displacement [mm]')
     plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
     lim = plt.gca().get_ylim()
@@ -260,7 +267,6 @@ for mot in ['STILL', 'NOD']:
                 plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
         for y1, y2 in zip(maxim[8], maxim[9]):
                 plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
-    #plt.title('Maximum displacement')
     plt.ylabel('Maximum displacement [mm]')
     plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
     lim = plt.gca().get_ylim()
@@ -283,7 +289,6 @@ for mot in ['STILL', 'NOD']:
         MakeBoxplot(RMS_s, colors)
         for i in range(len(mean_RMS_s)):
             plt.plot(i+1, mean_RMS_s[i], '.', c=colors[i], ls='')
-        #plt.title('RMS displacement')
         plt.title(mot_s+' scans', fontsize=17)
         plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
         lim = plt.gca().get_ylim()
@@ -296,7 +301,6 @@ for mot in ['STILL', 'NOD']:
         MakeBoxplot(median_s, colors)
         for i in range(len(mean_RMS_s)):
             plt.plot(i+1, mean_med_s[i], '.', c=colors[i], ls='')
-        #plt.title('Median displacement')
         plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
         lim = plt.gca().get_ylim()
         plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
@@ -310,7 +314,6 @@ for mot in ['STILL', 'NOD']:
             plt.plot(i+1, mean_max_s[i], '.', c=colors[i], ls='', label=labels[i])
         for i in range(2,len(mean_RMS_s)):
             plt.plot(i+1, mean_max_s[i], '.', c=colors[i], ls='')
-        #plt.title('Maximum displacement')
         plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
         lim = plt.gca().get_ylim()
         plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
@@ -331,10 +334,4 @@ for mot in ['STILL', 'NOD']:
     tmp = np.concatenate(maxim).ravel()
     print('Maximum: ', np.median(tmp), np.std(tmp))
     
-            
-            
-            
-            
-            
-        
-        
+              
