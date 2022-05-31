@@ -12,24 +12,30 @@ plt.style.use('seaborn-whitegrid')
 matplotlib.rc('axes', edgecolor='black')
 from matplotlib.ticker import ScalarFormatter
 
-out_dir = '/data1/hannah/Thesis_paper/Plots/'
-in_dir = '/data1/hannah/Motion_Estimates/Comparison/'
+out_dir = '../Results/Plots/'
+in_dir_mot = '../Results/Motion_Estimates/'
+in_dir_met = '../Results/Metrics_Results/'
+in_dir_qs = '../ObserverQualityScores/'
+out_dir_metrics = '../Results/Metrics_Results/Comparison/'
 
 subdir = [] 
 for i in range(1,10):
-    subdir.append('HC_0'+str(i)+'/')
+    subdir.append('Subject_0'+str(i)+'/')
 for i in range(10,20):
-    subdir.append('HC_'+str(i)+'/')
+    subdir.append('Subject_'+str(i)+'/')
 for i in range(20,23):
-    subdir.append('HC_'+str(i)+'/')
+    subdir.append('Subject_'+str(i)+'/')
 sequs = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_TIRM', 'T2STAR', 'DIFF']
 
-save = '_10_08'
+save = '_2022_05_27'
 
+plot_motion = True
+plot_still = True
+plot_nod = True
+plot_DWI = True
+calc_ADC_hist = True
 
 ''' (1) Plot motion data: '''
-plot_motion = False
-
 if plot_motion:
     
     # calculate p-values - first STILL, then NOD, then SHAKE, in each 
@@ -42,7 +48,7 @@ if plot_motion:
             if mot == 'SHAKE' and sequ != 'T1_MPR':
                 continue
             # find the most recent data:
-            file = glob.glob(in_dir+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
+            file = glob.glob(in_dir_mot+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
             file = [f for f in file if 'mid' not in f]  #sort out 'mid'
             if len(file)>0:
                 file = SortFiles(file)
@@ -59,7 +65,7 @@ if plot_motion:
             
         p_val, ind, alt, ES = PerformWilcoxonMotion(['RMS', 'Med', 'Max'], mot, 
                                                     [RMS, median, maxim], 
-                                                    in_dir, save,)
+                                                    in_dir_mot, save,)
         p_values.append(p_val)
         effect_size.append(ES)
             
@@ -83,7 +89,7 @@ if plot_motion:
         RMS, median, maxim, descr = [], [], [], []
         for sequ in sequs:
             # find the most recent data:
-            file = glob.glob(in_dir+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
+            file = glob.glob(in_dir_mot+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
             file = [f for f in file if 'mid' not in f]  # sort out mid
             if len(file)>0:
                 file = SortFiles(file)
@@ -104,7 +110,7 @@ if plot_motion:
             RMS_s, median_s, maxim_s, descr_s = [], [], [], []
             sequ = 'T1_MPR'
             # find the most recent data:
-            file = glob.glob(in_dir+'MotionMetrics_'+mot_s+'/'+sequ+'*.txt')
+            file = glob.glob(in_dir_mot+'MotionMetrics_'+mot_s+'/'+sequ+'*.txt')
             file = [f for f in file if 'mid' not in f] # sort out mid
             if len(file)>0:
                 file = SortFiles(file)
@@ -274,8 +280,6 @@ if plot_motion:
 
 
 ''' (2) Import image quality metrics: '''
-in_dir = '/data1/hannah/Metrics_Results/'
-out_dir_metrics = '/data1/hannah/Metrics_Results/Comparison/'
 withRR = True
 onlyRR = False    
 quality_scores = True
@@ -301,25 +305,34 @@ for sequ in sequs:
     i=0
     print('Files used for calculation:')
     for sub in subdir:
-        # for DWI, T2FLAIR and T2STAR not all volunteers available:
-        if sequ in ['ADC', 'TRACEW_B0', 'TRACEW_B1000', 'T2_FLAIR'] and sub in ['HC_0'+str(i)+'/' for i in range(1,10)]:
-            continue
-        if sequ in ['ADC', 'TRACEW_B0', 'TRACEW_B1000', 'T2_FLAIR'] and sub in ['HC_'+str(i)+'/' for i in range(10,13)]:
-            continue
-        if sequ == 'T2STAR' and sub in ['HC_20/', 'HC_21/', 'HC_22/']:
-            continue
+        # skip all volunteers where the following sequences were not acquired
+        if sequ in ['ADC', 'TRACEW_B0', 'TRACEW_B1000', 'T2_FLAIR', 'T2STAR']:
+            tmp = os.listdir(in_dir_met+sub)
+            tmp_ = ''
+            if sequ not in tmp_.join(tmp):
+                continue
+
         
-        folder = in_dir+sub  
+        folder = in_dir_met+sub  
         file_ = glob.glob(folder+'Values_*'+sequ+'*')
         file = [f for f in file_ if f.find('Retro')==-1]
+        
         if len(file)>0:
             # get the most recent file:
-            file = SortFiles(file)
+            file = SortFiles(file, True)
             print(file[0])
             tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, usecols=0, 
                               skiprows=1)
             tmp2, tmp3, tmp4 = np.loadtxt(file[0], unpack=True, 
                                           usecols=(1,2,3), skiprows=1)
+            
+            if sequ == 'T2STAR' and np.size(tmp1) == 1:
+                # A few subject only contain a MOCO OFF STILL T2STAR scan.
+                # Those were only acquired for comparison with susceptibility
+                # weighted scans and are not included in analysis of image
+                # quality metrics.
+                continue
+            
             incl = []
             for na,s,p,t in zip(tmp1, tmp2, tmp3, tmp4):
                 if sequ in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
@@ -333,33 +346,53 @@ for sequ in sequs:
             
             # do the same for quality scores:
             if sequ not in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
-                file = glob.glob(folder+'QualityScores*'+sequ+'*')
+                file = glob.glob(in_dir_qs+sequ+' Score.txt')
                 if len(file)>0:
                     # get the most recent file:
                     file = SortFiles(file)
                     print(file[0])
-                    tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, 
-                                      usecols=0, skiprows=1)
-                    tmp2 = np.loadtxt(file[0], unpack=True, usecols=1, 
-                                      skiprows=1)
+                    
+                    subj_names = np.loadtxt(file[0], unpack=True, dtype=str, usecols=0, 
+                                            skiprows=1)
+                    tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, usecols=1, 
+                                            skiprows=1)
+                    tmp2, tmp3, tmp4 = np.loadtxt(file[0], unpack=True, usecols=(2,3,4), 
+                                                  skiprows=1)
+                    
+                    tmp1 = tmp1[subj_names==sub[:-1]]
+                    tmp2 = tmp2[subj_names==sub[:-1]]
+                    tmp3 = tmp3[subj_names==sub[:-1]]
+                    tmp4 = tmp4[subj_names==sub[:-1]]
+                    
+                
                     incl = []
-                    for na,q in zip(tmp1, tmp2):
+                    for na,q1,q2,q3 in zip(tmp1, tmp2, tmp3, tmp4):
                         if 'RETRO' not in na:
-                            ind = np.where(names==na)[0][0]
-                            qs[i,ind] = q
+                            ind = np.where(names==na[:-1])[0][0]
+                            # average the scores of the three raters with double weight for the radiologist
+                            qs[i,ind] = (q1+q2+2*q3)/4
                             incl.append(ind)
+                    
+                
                             
             # for DWI quality ranks instead of quality scores:                
             elif sequ == 'TRACEW_B1000':
-                file = glob.glob(folder+'Ranks_DWI**') 
+                file = glob.glob(in_dir_qs+'DWI Rank.txt') 
                 if len(file)>0:
                     # get the most recent file:
                     file = SortFiles(file)
                     print(file[0])
-                    tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, 
-                                      usecols=0, skiprows=1)
-                    tmp2 = np.loadtxt(file[0], unpack=True, usecols=1, 
-                                      skiprows=1)
+                    
+                    subj_names = np.loadtxt(file[0], unpack=True, dtype=str, usecols=0, 
+                                            skiprows=1)
+                    tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, usecols=1, 
+                                            skiprows=1)
+                    tmp2 = np.loadtxt(file[0], unpack=True, usecols=(2), 
+                                                  skiprows=1)
+                    
+                    tmp1 = tmp1[subj_names==sub[:-1]]
+                    tmp2 = tmp2[subj_names==sub[:-1]]
+                    
                     incl = []
                     for na,q in zip(tmp1, tmp2):
                         if 'NOD' in na:
@@ -531,7 +564,6 @@ for sequ in sequs:
 
 
 ''' (3) Plot image quality metrics for still scans: '''
-plot_still = True
 if plot_still:
     metrics = [tgs, qss, np.array([qss[-1]])]
     p_values = [p_tgs, p_qss[0:4], np.array([p_qss[-1]])]
@@ -650,7 +682,6 @@ if plot_still:
 
 
 ''' (4) Plot image quality metrics for nodding scans: '''
-plot_nod = True
 if plot_nod:
     # first MPRAGE and FLAIR
     metrics = [ssims, psnrs, tgs, qss]
@@ -933,27 +964,37 @@ if plot_nod:
 
 
 ''' (5) Plot DWI analysis: '''
-plot_DWI = False
-calc_ADC_hist = False
 if plot_DWI:
     # calculate histograms of ACS difference images:
-    sub_out_dir = '/data1/hannah/Metrics_Results/'
-    in_dir = '/data1/hannah/Registrations/'
-
-    subdir = []
-    for i in range(13,20):
-        subdir.append('HC_'+str(i)+'/')
+    sub_out_dir = '../Results/Metrics_Results/'
+    in_dir = '/../Registrations/'
+    bm_dir = '../Brainmasks/'
+    
+        
+    subdir = [] 
+    for i in range(1,10):
+        subdir.append('Subject_0'+str(i)+'/')
+    for i in range(10,20):
+        subdir.append('Subject_'+str(i)+'/')
     for i in range(20,23):
-        subdir.append('HC_'+str(i)+'/')
+        subdir.append('Subject_'+str(i)+'/')
+        
 
     if calc_ADC_hist:
         all_mean, all_std, all_sum = [], [], []
         for sub in subdir:
+            # sort out subjects for which no DWI scans available:
+            tmp = os.listdir(sub_out_dir+sub)
+            tmp_ = ''
+            if 'ADC' not in tmp_.join(tmp):
+                continue
+            
             differences = []
             descr = []
             still_off = glob.glob(in_dir+sub+'/ADC/*MOCO_OFF_STILL*.nii')[0]
             still = nib.load(still_off).get_fdata().astype(np.uint16)
-            bm = glob.glob(in_dir+sub+'bm_mov_*ADC*.nii')[0]
+            bm = glob.glob(bm_dir+sub+'bm_mov_*ADC*.nii')[0]
+            glob.glob(in_dir+sub+'bm_mov_*ADC*.nii')[0]
             bm = nib.load(bm).get_fdata().astype(np.uint16)        
 
             still = still*bm
@@ -989,12 +1030,18 @@ if plot_DWI:
 
         # look at results for all subjects:
         All_mean, All_std, All_sum = np.array(all_mean)[:,::-1], np.array(all_std)[:,::-1], np.array(all_sum)[:,::-1]
-        save = np.array([All_mean, All_std, All_sum])
-        np.save(out_dir_metrics+'ADC_all_values_04_26', save)
+        save_arr = np.array([All_mean, All_std, All_sum])
+        np.save(out_dir_metrics+'ADC_all_values_'+save, save_arr)
     
     
     # load the values for the ADC histograms and plot them:
-    All_mean, All_std, All_sum = np.load(out_dir_metrics+'ADC_all_values_04_26.npy')
+    file = glob.glob(out_dir_metrics+'ADC_all_values_**.npy') 
+    if len(file)>0:
+        # get the most recent file:
+        file = SortFiles(file)
+        print(file[0])
+        
+    All_mean, All_std, All_sum = np.load(file[0])
     All_mean = np.array([All_mean[:,0], All_mean[:,2], All_mean[:,1]]).T
     All_std = np.array([All_std[:,0], All_std[:,2], All_std[:,1]]).T
     All_sum = np.array([All_sum[:,0], All_sum[:,2], All_sum[:,1]]).T
@@ -1002,13 +1049,13 @@ if plot_DWI:
     
     p_mean, rej_mean, ind, altern = PerformWilcoxonAllImg('Mean', All_mean, 'ADC', 
                                                           out_dir_metrics, 
-                                                          '_04_26', option='diff')
+                                                          save, option='diff')
     p_std, rej_std, ind, altern = PerformWilcoxonAllImg('Std', All_std, 'ADC',
                                                         out_dir_metrics, 
-                                                        '_04_26', option='diff')
+                                                        save, option='diff')
     p_sum, rej_sum, ind, altern = PerformWilcoxonAllImg('Sum', All_sum, 'ADC', 
                                                         out_dir_metrics, 
-                                                        '_04_26', option='diff')
+                                                        save, option='diff')
     
     mean_mean = np.mean(All_mean, axis=0)
     mean_std = np.mean(All_std, axis=0)
@@ -1112,9 +1159,9 @@ if plot_DWI:
         if sub in ['HC_'+str(i)+'/' for i in range(10,13)]:
             continue
         
-        file = glob.glob('/data1/hannah/Registrations/'+sub+'/ADC/*OFF_STILL*.nii')[0]
+        file = glob.glob(in_dir+sub+'/ADC/*OFF_STILL*.nii')[0]
         img = nib.load(file).get_fdata().astype(np.uint16)
-        bm_file = glob.glob('/data1/hannah/Registrations/'+sub+'/bm*ADC*.nii')[0]
+        bm_file = glob.glob(bm_dir+sub+'bm_mov_*ADC*.nii')[0]
         bm = nib.load(bm_file).get_fdata().astype(np.uint16)
         
         bm_fl = bm.flatten()
@@ -1125,8 +1172,3 @@ if plot_DWI:
     
     print('Mean Values of ground truth scans:', means)
     print('Overall mean value:', np.mean(means))
-    
-    
-    
-    
-    
