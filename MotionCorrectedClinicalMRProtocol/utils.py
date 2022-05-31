@@ -154,7 +154,7 @@ def Show_Stars(p_cor, ind, bars, heights, arange_dh=False, dh=.1, flexible_dh=Fa
     return 0
 
 
-def SortFiles(file):
+def SortFiles(file, no_check=False):
     '''
     sort a number of files after date and pick the most recent file.
 
@@ -173,8 +173,12 @@ def SortFiles(file):
     ind = []
     for i in range(len(file)):
         base = os.path.basename(file[i])
-        if len(base)<50:
+        if no_check:
             ind.append(i)
+        else:
+            if len(base)<30:
+                ind.append(i)
+        
     file = np.array(file)
     file = file[ind]
     file = np.sort(file)[::-1]
