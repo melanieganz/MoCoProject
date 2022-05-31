@@ -37,8 +37,8 @@ def transformMRI(sub, niftiDir, outDir):
     files = glob.glob(niftiDir+"*T1_MPR_*.nii")
 
     for i in range(0, len(files)):
-        movImg = niftiDir + os.path.basename(files[i])
-        regname = regDir + os.path.basename(files[i]) + '.lta'
+        movImg = os.path.abspath(niftiDir + os.path.basename(files[i]))
+        regname = os.path.abspath(regDir + os.path.basename(files[i]) + '.lta')
 
         subprocess.run('bbregister --s ' + sub + ' --mov '+  movImg + ' --reg ' + regname + ' --t1 --init-best-header', shell=True)
         print(i, ' done')
@@ -50,8 +50,8 @@ def transformMRI(sub, niftiDir, outDir):
     for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
         if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
             still_img = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
-            movImg = niftiDir + os.path.basename(still_img)
-            regname = regDir + os.path.basename(still_img) + '.lta'
+            movImg = os.path.abspath(niftiDir + os.path.basename(still_img))
+            regname = os.path.abspath(regDir + os.path.basename(still_img) + '.lta')
 
             if tag in ['T1_TIRM_']:
                 subprocess.run('bbregister --s ' + sub + ' --mov '+  movImg + ' --reg ' + regname + ' --t1 --init-best-header', shell=True)
@@ -75,8 +75,8 @@ def transformMRI(sub, niftiDir, outDir):
             targImg = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
 
             for i in range(0, len(files)):
-                movImg = niftiDir + os.path.basename(files[i])
-                regname = regDir + os.path.basename(files[i]) + '.lta'
+                movImg = os.path.abspath(niftiDir + os.path.basename(files[i]))
+                regname = os.path.abspath(regDir + os.path.basename(files[i]) + '.lta')
 
                 subprocess.run('mri_robust_register --mov '+  movImg + ' --dst ' + targImg + ' --lta ' + regname + ' --satit', shell=True)
                 print(i, ' done')
@@ -88,7 +88,7 @@ def transformMRI(sub, niftiDir, outDir):
     return 0
 
 
-def applyTransformMRI(niftiDir, brainmask, outDir):
+def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
     '''
     Applies transforms (saved in outDir/regs or outDir/regs_robust) to the 
     scans as well as to the brainmasks
@@ -98,9 +98,14 @@ def applyTransformMRI(niftiDir, brainmask, outDir):
     niftiDir : str
         directory where nifti images are stored.
     brainmask : str
-        directory where brainmask for reference image is stored.
+        directory where brainmask for reference image is stored. This is 
+        probably the FreeSurfer out put directory sub_ID/mri/brainmask.mgz
     outDir : str
         directory where moved and masked images will be saved.
+    apply_transform_bm : bool
+        whether the registration transform should also be applied to the 
+        images. This is not necessary for calculating metrics. Only if one 
+        starts from scratch with recon-all etc. for reproducing our calculations.
 
     Returns
     -------
@@ -108,250 +113,55 @@ def applyTransformMRI(niftiDir, brainmask, outDir):
         returns 0, when completed.
 
     '''
-    
-    # binarize brainmask and transform T1_MPR:
-    # output: brainmask_bin.nii and *T1_MPR_*_moved.nii
-    regDir = outDir + 'regs/'
-    subDir, tail = os.path.split(brainmask)
-    name, ext = os.path.splitext(tail)
-    brainmask_bin_nii = outDir + 'brainmask_bin.nii'
-    T1 = subDir + '/T1.mgz'
-
-    # binarize brainmask:
-    subprocess.run('mri_binarize --i ' + brainmask + ' --o ' + brainmask_bin_nii + ' --match 0 --inv', shell=True)
-
-    files = glob.glob(niftiDir+"*T1_MPR_*.nii")
-
-    for i in range(0, len(files)):
-        vol = niftiDir+os.path.basename(files[i])
-        name2, ext2 = os.path.splitext(os.path.basename(files[i]))
-        vol_moved = outDir + name2 + '_moved' + ext2
-        regname = regDir + os.path.basename(files[i]) + '.lta'
-
-        # transform:
-        subprocess.run('mri_vol2vol --mov ' + vol + ' --targ ' + T1 + ' --o ' + vol_moved + ' --lta ' + regname, shell=True)
-
-        print(i, ' done')
-
-    print('##################')
-    print('Transform applied for T1_MPR_')
-    print('##################')
-
-
-    # transform brainmask into still/MoCo_off domain of remaining scans:
-    for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
-        if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
-            still_img = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
-            bm_mov = outDir + 'bm_mov_'+os.path.basename(still_img)
-            T2 = niftiDir + os.path.basename(still_img)
-            regname = regDir + os.path.basename(still_img) + '.lta'
-            name2, ext2 = os.path.splitext(os.path.basename(still_img))
-
-            # transform:
-            subprocess.run('mri_vol2vol --mov ' + T2 + ' --targ ' + brainmask_bin_nii + ' --o ' + bm_mov + ' --lta ' + regname + ' --inv --nearest', shell=True)
-
-            print('##################')
-            print('Brainmask transformed for ', tag)
-            print('##################')
-
-
-    # transform remaining scans:
+    # transform all scans:
     # output: *tag*_moved.nii
-    regDir = outDir + 'regs_robust/'
 
-    for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+    for tag in ['T1_MPR_', 'T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
         if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
             targImg = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
             files = glob.glob(niftiDir+"*"+tag+"*.nii")
 
             for i in range(0, len(files)):
-                vol = niftiDir+os.path.basename(files[i])
+                vol = os.path.abspath(niftiDir+os.path.basename(files[i]))
                 name2, ext2 = os.path.splitext(os.path.basename(files[i]))
                 vol_moved = outDir + name2 + '_moved' + ext2
-                regname = regDir + os.path.basename(files[i]) + '.lta'
+                regname = os.path.abspath(reg_dir + os.path.basename(files[i]) + '.lta').replace('_defaced', '')
 
                 # transform:
                 subprocess.run('mri_vol2vol --mov ' + vol + ' --targ ' + targImg + ' --o ' + vol_moved + ' --lta ' + regname, shell=True)
 
                 print(i, ' done')
 
-    return 0
-
-
-
-def transformMRIRetro(sub, niftiDir, outDir, corr=True):
-    '''
-    Calculates the registration transform for retrospectively corrected data:
-    using FreeSurfer functions bbregister for MPRAGE and still MOCO_OFF scans 
-    of remaining sequences and robust register for remaining scans.
-
-    Parameters
-    ----------
-    sub : str
-        subject ID.
-    niftiDir : str
-        path to Nifti directory.
-    outDir : str
-        path to output directory.
-    corr : bool (optional)
-        if it is True, then regnames are adjusted to deal with the fact that
-        retrospectively reconstructed scans have a different filename after
-        bias field correction.
-
-    Returns
-    -------
-    int
-        returns 0, when completed.
-
-    '''
-
-    # bbregister for T1 MPRAGE and MOCO_OFF_STILL_ FLAIR scan:
-    regDir = outDir + 'regs_retro/'
-    if not os.path.exists(regDir):
-        print('New regDir created')
-        os.makedirs(regDir)
-    files = glob.glob(niftiDir+"*T1_MPR_*.nii")
-
-    for i in range(0, len(files)):
-        movImg = niftiDir + os.path.basename(files[i])
-        regname = regDir + os.path.basename(files[i]) + '.lta'
-        if corr == True:
-            regname = regDir + os.path.basename(files[i])[14:] + '.lta'
-
-        subprocess.run('bbregister --s ' + sub + ' --mov '+  movImg + ' --reg ' + regname + ' --t1 --init-best-header', shell=True)
-        print(i, ' done')
-
-    print('##################')
-    print('bbregister for T1_MPR_Retro done')
-    print('##################')
-
-
-    # robust register for all T2 FLAIR scans:
-    regDir = outDir + 'regs_robust_retro/'
-    if not os.path.exists(regDir):
-        print('New regDir created')
-        os.makedirs(regDir)
-
-
-    if len(glob.glob(niftiDir+"*T2_FLAIR*.nii"))>0:
-        files = glob.glob(niftiDir+"*T2_FLAIR*.nii")
-        targImg = glob.glob(niftiDir+"*MOCO_OFF_STILL_*T2_FLAIR*.nii")[0]
-
-        for i in range(0, len(files)):
-            movImg = niftiDir + os.path.basename(files[i])
-            regname = regDir + os.path.basename(files[i]) + '.lta'
-            if corr == True:
-                regname = regDir + os.path.basename(files[i])[14:] + '.lta'
-
-            subprocess.run('mri_robust_register --mov '+  movImg + ' --dst ' + targImg + ' --lta ' + regname + ' --iscale --satit', shell=True)
-            print(i, ' done')
-
-        print('##################')
-        print('robust register for T2_FLAIR_Retro done')
-        print('##################')
-
-    return 0
-
-
-
-def applyTransformMRIRetro(niftiDir, brainmask, outDir, corr=True):
-    '''
-    Applies transforms for retrospectively corrected scans (saved in
-    outDir/regs or outDir/regs_robust) and transforms the brainmasks
-
-    Parameters
-    ----------
-    niftiDir : str
-        directory where nifti images are stored.
-    brainmask : str
-        directory where brainmask for reference image is stored.
-    outDir : str
-        directory where moved and masked images will be saved.
-    corr : bool (optional)
-        if it is True, then regnames are adjusted to deal with the fact that
-        retrospectively reconstructed scans have a different filename after
-        bias field correction.
-
-    Returns
-    -------
-    int
-        returns 0, when completed.
-
-    '''
-    # binarize brainmask and transform T1_MPR
-    # --> output: brainmask_bin.nii and *T1_MPR_*_moved.nii
-    regDir = outDir + 'regs_retro/'
-    subDir, tail = os.path.split(brainmask)
-    name, ext = os.path.splitext(tail)
-    brainmask_bin_nii = outDir + name + '_bin.nii'
-    T1 = subDir + '/T1.mgz'
-
-    # binarize brainmask:
-    subprocess.run('mri_binarize --i ' + brainmask + ' --o ' + brainmask_bin_nii + ' --match 0 --inv', shell=True)
-
-    files = glob.glob(niftiDir+"*T1_MPR_*.nii")
-
-    for i in range(0, len(files)):
-        vol = niftiDir+os.path.basename(files[i])
-        name2, ext2 = os.path.splitext(os.path.basename(files[i]))
-        vol_moved = outDir + 'retro_scans/' + name2 + '_moved' + ext2
-        regname = regDir + os.path.basename(files[i]) + '.lta'
-        if corr == True:
-            regname = regDir + os.path.basename(files[i])[14:] + '.lta'
-
-        # transform:
-        subprocess.run('mri_vol2vol --mov ' + vol + ' --targ ' + T1 + ' --o ' + vol_moved + ' --lta ' + regname, shell=True)
-
-        print(i, ' done')
-
-    print('##################')
-    print('Transform applied for T1_MPR_')
-    print('##################')
-
-
-
-    # now move T2 FLAIR scans:
-    regDir = outDir + 'regs_robust_retro/'
-
-    if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*T2_FLAIR*.nii"))>0:
-        targImg = glob.glob(niftiDir+"*MOCO_OFF_STILL_*T2_FLAIR*.nii")[0]
-        files = glob.glob(niftiDir+"*T2_FLAIR*.nii")
-
-        for i in range(0, len(files)):
-            vol = niftiDir+os.path.basename(files[i])
-            name2, ext2 = os.path.splitext(os.path.basename(files[i]))
-            vol_moved = outDir + 'retro_scans/' + name2 + '_moved' + ext2
-            regname = regDir + os.path.basename(files[i]) + '.lta'
-            if corr == True:
-                regname = regDir + os.path.basename(files[i])[14:] + '.lta' #check that working
-
-            # transform:
-            subprocess.run('mri_vol2vol --mov ' + vol + ' --targ ' + targImg + ' --o ' + vol_moved + ' --lta ' + regname, shell=True)
-
-            print(i, ' done')
     
-        # use the brainmask transform calculated on data reconstructed by the 
-        # scanner, but flip it in all directin so that it matches 
-        # retrospectively reconstructed FLAIR scans):
-        if corr == False:
-            bm_file = glob.glob(outDir+'bm_mov_*TCLMOCO_OFF_STILL_T2_FLAIR*.nii')[0]
-            bm = nib.load(bm_file).get_fdata().astype(np.uint16)
-            bm_tr = bm[::-1,::-1,::-1]
-            np.save(outDir+'bm_mov_retro_TCLMOCO_OFF_STILL_T2_FLAIR', bm_tr)
-        
-    print('##############')
-    print('Transform applied for T2 FLAIR')
-    print('##############')
+    if apply_transform_bm:
+        # binarize brainmask and transform T1_MPR:
+        # output: brainmask_bin.nii and *T1_MPR_*_moved.nii
+        regDir = outDir + 'regs/'
+        subDir, tail = os.path.split(brainmask)
+        name, ext = os.path.splitext(tail)
+        brainmask_bin_nii = outDir + 'brainmask_bin.nii'
+        # binarize brainmask:
+        subprocess.run('mri_binarize --i ' + brainmask + ' --o ' + brainmask_bin_nii + ' --match 0 --inv', shell=True)
+
+        # transform brainmask into still/MoCo_off domain of remaining scans:
+        for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+            if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
+                still_img = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
+                bm_mov = outDir + 'bm_mov_'+os.path.basename(still_img)
+                T2 = niftiDir + os.path.basename(still_img)
+                regname = os.path.abspath(regDir + os.path.basename(still_img) + '.lta')
+                name2, ext2 = os.path.splitext(os.path.basename(still_img))
+    
+                # transform:
+                subprocess.run('mri_vol2vol --mov ' + T2 + ' --targ ' + brainmask_bin_nii + ' --o ' + bm_mov + ' --lta ' + regname + ' --inv --nearest', shell=True)
+    
+                print('##################')
+                print('Brainmask transformed for ', tag)
+                print('##################')
 
     return 0
 
 
-
-def Run_Recon_All_Again(fails):
-    for f in fails:
-        subprocess.run('recon-all -s ' + f + ' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True)   # -sd /data1/hannah/Old_Setup/Data_Recon_All/
-
-    return 0
 
 
 
@@ -380,17 +190,5 @@ def Run_Long_Stream(name):
             subprocess.run('recon-all -long X_ON_'+mov+name+' X_BASE_'+name+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True)
 
     return 0
-
-
-
-
-
-
-
-
-
-
-
-
 
 
