@@ -463,3 +463,8 @@ if run == True:
         subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/rh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'sig_fdr.mgh:overlay_threshold=1.301,6 -viewport 3d', shell=True)
         folder = outDir+'rh.'+d+'.glmdir/'
         subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/rh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'beta.mgh:overlay_threshold=0.04,0.2 -viewport 3d', shell=True)
+
+
+
+
+

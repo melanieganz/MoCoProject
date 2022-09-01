@@ -967,7 +967,8 @@ if plot_nod:
 if plot_DWI:
     # calculate histograms of ACS difference images:
     sub_out_dir = '../Results/Metrics_Results/'
-    in_dir = '/../Registrations/'
+    im_dir = '../BIDSdata_defaced/'
+    in_dir = '../RegistrationTransforms/'
     bm_dir = '../Brainmasks/'
     
         
@@ -983,6 +984,7 @@ if plot_DWI:
     if calc_ADC_hist:
         all_mean, all_std, all_sum = [], [], []
         for sub in subdir:
+            #print('Subject of interest is '+sub)
             # sort out subjects for which no DWI scans available:
             tmp = os.listdir(sub_out_dir+sub)
             tmp_ = ''
@@ -991,15 +993,15 @@ if plot_DWI:
             
             differences = []
             descr = []
-            still_off = glob.glob(in_dir+sub+'/ADC/*MOCO_OFF_STILL*.nii')[0]
+            still_off = glob.glob(im_dir+sub+'/TCLMOCO_OFF_STILL_EP2D_DIFF_EXTTRACKING_ADC*.nii')[0]
             still = nib.load(still_off).get_fdata().astype(np.uint16)
             bm = glob.glob(bm_dir+sub+'bm_mov_*ADC*.nii')[0]
-            glob.glob(in_dir+sub+'bm_mov_*ADC*.nii')[0]
+            #glob.glob(in_dir+sub+'bm_mov_*ADC*.nii')[0]
             bm = nib.load(bm).get_fdata().astype(np.uint16)        
 
             still = still*bm
 
-            all_imgs = [x for x in glob.glob(in_dir+sub+'/ADC/**.nii') if x not in still_off]
+            all_imgs = [x for x in glob.glob(im_dir+sub+'/*ADC*.nii') if x not in still_off]
             for im in all_imgs:
                 img = nib.load(im).get_fdata().astype(np.uint16)
                 img = img*bm
@@ -1038,7 +1040,7 @@ if plot_DWI:
     file = glob.glob(out_dir_metrics+'ADC_all_values_**.npy') 
     if len(file)>0:
         # get the most recent file:
-        file = SortFiles(file)
+        #file = SortFiles(file)
         print(file[0])
         
     All_mean, All_std, All_sum = np.load(file[0])
@@ -1158,8 +1160,15 @@ if plot_DWI:
             continue
         if sub in ['HC_'+str(i)+'/' for i in range(10,13)]:
             continue
+
+        # sort out subjects for which no DWI scans available:
+        tmp = os.listdir(sub_out_dir+sub)
+        tmp_ = ''
+        if 'ADC' not in tmp_.join(tmp):
+                continue
         
-        file = glob.glob(in_dir+sub+'/ADC/*OFF_STILL*.nii')[0]
+        file = glob.glob(im_dir+sub+'/TCLMOCO_OFF_STILL_EP2D_DIFF_EXTTRACKING_ADC*.nii')[0]
+        #glob.glob(im_dir+sub+'/*ADC*.nii')[0]
         img = nib.load(file).get_fdata().astype(np.uint16)
         bm_file = glob.glob(bm_dir+sub+'bm_mov_*ADC*.nii')[0]
         bm = nib.load(bm_file).get_fdata().astype(np.uint16)
@@ -1172,3 +1181,7 @@ if plot_DWI:
     
     print('Mean Values of ground truth scans:', means)
     print('Overall mean value:', np.mean(means))
+
+    
+    
+   

@@ -24,9 +24,9 @@ for i in range(20,23):
 sequs = ['T1_MPR', 'T2_TSE', 'T1_TIRM', 'T2_FLAIR', 'T2STAR', 'DIFF']
 
 
-save = '_2022_05_11'   
-new_calc = False
-plot = True
+save = '_2022_06_02'   
+new_calc = True
+plot = False
 
 
 ''' (1) Calculate the metrics for each sequence and volunteer: '''
@@ -334,4 +334,10 @@ for mot in ['STILL', 'NOD']:
     tmp = np.concatenate(maxim).ravel()
     print('Maximum: ', np.median(tmp), np.std(tmp))
     
-              
+            
+            
+            
+            
+            
+        
+        

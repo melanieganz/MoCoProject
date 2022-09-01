@@ -214,7 +214,7 @@ for sub in subjs:
     outDirMetrics = '../Results/Metrics_Results/'+sub+'/'
     
     
-    save = '2022_05_10'
+    save = '2022_08_04'
     
     # Which steps to perform:
     # by default we have performed registrations in FreeSurfer and provide those for you
@@ -225,11 +225,13 @@ for sub in subjs:
     apply_transform_bm = False
     
     # steps to basically always perform
-    apply_transform = False
+    apply_transform = True
     metrics = True
     show_bm_reg = False 
     
     FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, 
                  outDirMetrics, save, recon_all, register, apply_transform, 
                  apply_transform_bm, metrics, show_bm_reg)
+
+
 

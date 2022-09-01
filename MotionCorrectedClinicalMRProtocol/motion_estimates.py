@@ -673,3 +673,4 @@ def CalcMotionMetricsforScan(subj, name, seq_type, track_dir=None, bids_dir=None
     
     return magn, RMS, med_disp, max_disp
 
+
