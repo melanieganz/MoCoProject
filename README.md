@@ -20,8 +20,8 @@ Evaluating the match of image quality metrics with radiological assessment in a 
 Abstract presented at ISMRM 2022
 
 ### MotionCorrectedClinicalMRProtocol:
-Evaluating the performance of markerless prospective motion correction and selective reacquisition in a clinical protocol for pediatric brain MRI
-Code for the work on the ongoing Clinical study at Neurobiology Research Unit, Copenhagen University Hospital (Denmark). 
+Evaluating the performance of markerless prospective motion correction and selective reacquisition in a clinical protocol for brain MRI
+Code for the work with a dataset of 22 healthy volunteers to validate the quality of preopsective motion correction techniques prior to the ongoing clinical study at Neurobiology Research Unit, Copenhagen University Hospital (Denmark). Fully anonymized data (BIDSified image data, raw data in ISMRM-RD format and motion tracking files) will be released asap.
 
 ### RealNoiseMRI challenge:
 MRI reconstruction challenge with realistic noise, first round associated with MICCAI 2021, second round asociated with MedNeurIPS
