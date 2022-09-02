@@ -1,0 +1,20 @@
+FROM pwighton/fs-miniconda:7.3.2
+
+# You can either add your FreeSurfer license file to this directory when building
+# the container, or mount the license file when executing docker run
+#  e.g.
+#    docker run \
+#      -v license.txt:/license.txt:ro
+#ADD license.txt /license.txt
+
+# Set this environment variable to the location of your FreeSurfer license file
+# inside the container.
+ENV FS_LICENSE=/license.txt
+
+ADD entrypoint.sh /entrypoint.sh
+
+RUN git clone --single-branch --branch main https://github.com/melanieganz/MoCoProject.git /moco-healthy/
+
+RUN conda create --name mocohealthy --file /moco-healthy/MotionCorrectedClinicalMRProtocol/MoCoHealthy-spec-file.txt
+
+ENTRYPOINT ["/entrypoint.sh"]
