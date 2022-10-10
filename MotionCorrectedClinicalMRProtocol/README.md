@@ -1,6 +1,6 @@
 # Evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI
 
-Code for the manuscript soon available on neurolivre.org (in preparation). The presented code was adapted so that it can be run on the anonymized, published dataset.
+Code for the manuscript titled "Evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI" (in submission). The presented code was adapted so that it can be run on the anonymized, published dataset.
 Furthermore, all metrics from the repository https://github.com/melanieganz/MoCoProject/tree/main/ImageQualityMetrics are incorporated into the scripts, as well, in order to enable re-calculation of all these metrics.
 
 ## Code used for analysing the data:
