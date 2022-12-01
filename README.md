@@ -17,15 +17,16 @@ Paper published in Frontiers in Radiology 2021 and accessible [here](https://www
 
 ### ImageQualityMetrics:
 Evaluating the match of image quality metrics with radiological assessment in a dataset with and without motion artifacts
-Abstract presented at ISMRM 2022
+Abstract presented at ISMRM 2022. The data used in thsi work is shared here [OpenNeuro](https://openneuro.org/datasets/ds004332).
 
 ### MotionCorrectedClinicalMRProtocol:
 Evaluating the performance of markerless prospective motion correction and selective reacquisition in a clinical protocol for brain MRI
-Code for the work with a dataset of 22 healthy volunteers to validate the quality of preopsective motion correction techniques prior to the ongoing clinical study at Neurobiology Research Unit, Copenhagen University Hospital (Denmark). Fully anonymized data (BIDSified image data, raw data in ISMRM-RD format and motion tracking files) will be released asap.
+Code for the work with a dataset of 22 healthy volunteers to validate the quality of preopsective motion correction techniques prior to the ongoing clinical study at Neurobiology Research Unit, Copenhagen University Hospital (Denmark). Fully anonymized data (BIDSified image data and motion tracking files) are available on [OpenNeuro](https://openneuro.org/datasets/ds004332). Raw data in ISMRM-RD format can be shared upon signing the Open Brain consent and upon request - please e-mail mganz@nru.dk.
+
 
 ### RealNoiseMRI challenge:
 MRI reconstruction challenge with realistic noise, first round associated with MICCAI 2021, second round asociated with MedNeurIPS
-You can read more about the challenge [here](https://realnoisemri.grand-challenge.org/)
+You can read more about the challenge [here](https://realnoisemri.grand-challenge.org/). Fully anonymized data (BIDSified image data and motion tracking files) are available on [OpenNeuro](https://openneuro.org/datasets/ds004332). Raw data in ISMRM-RD format can be shared upon signing teh Open Brain consent and upon request - please e-mail mganz@nru.dk. 
 
 ### Kom med i scanneren - mobile phone app
 In order to see the freely availale code for the "Kom med i scanneren" - mobile phone app, please visit this [repo](https://github.com/melanieganz/Borneriget_MRI)
@@ -33,5 +34,5 @@ In order to see the freely availale code for the "Kom med i scanneren" - mobile 
 
 ## Data
 ### Datasets with and without deliberate head movements for evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI
-We are sharing 22 datasets with and without deliberate head movements that were used in the projects on ImageQualityMetrics, MotionCorrectedClinicalMRProtocol and the RealNoiseMRI challenge publically on [OpenNeuro](https://openneuro.org/datasets/ds004332).
+We are sharing 22 datasets with and without deliberate head movements that were used in the projects on ImageQualityMetrics, MotionCorrectedClinicalMRProtocol and the RealNoiseMRI challenge publically on [OpenNeuro](https://openneuro.org/datasets/ds004332). The dataset consists of fully anonymized data (BIDSified image data and motion tracking files). Raw data in ISMRM-RD format can be shared upon signing the Open Brain consent and upon request - please e-mail mganz@nru.dk.
 
