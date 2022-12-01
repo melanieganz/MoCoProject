@@ -30,3 +30,8 @@ You can read more about the challenge [here](https://realnoisemri.grand-challeng
 ### Kom med i scanneren - mobile phone app
 In order to see the freely availale code for the "Kom med i scanneren" - mobile phone app, please visit this [repo](https://github.com/melanieganz/Borneriget_MRI)
 
+
+## Data
+### Datasets with and without deliberate head movements for evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI
+We are sharing 22 datasets with and without deliberate head movements that were used in the projects on ImageQualityMetrics, MotionCorrectedClinicalMRProtocol and the RealNoiseMRI challenge publically on [OpenNeuro](https://openneuro.org/datasets/ds004332).
+
