@@ -1,6 +1,6 @@
 # Evaluating the match of image quality metrics with radiological assessment in a dataset with and without motion artifacts
 
-Abstract presented at ISMRM 2022
+Abstract presented at ISMRM 2022, accessible for members [here](https://archive.ismrm.org/2022/2061.html): 
 
 ## Code used for analysing the data:
 * `Image_quality_metricy.py`: calculates a specified metric value for a given image and brainmask  
