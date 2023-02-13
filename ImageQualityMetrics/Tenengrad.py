@@ -30,7 +30,7 @@ def TG(img, brainmask=[]):
     '''
     # image needs to be in floating point numbers in order for gradient to be 
     # correctly calculated
-    img = img.astype(np.float)
+    img = img.astype(np.float64)
     
 
     # calulate gradients:
