@@ -17,7 +17,7 @@ Paper published in Frontiers in Radiology 2021 and accessible [here](https://www
 
 ### ImageQualityMetrics:
 Evaluating the match of image quality metrics with radiological assessment in a dataset with and without motion artifacts
-Abstract presented at ISMRM 2022. The data used in thsi work is shared here [OpenNeuro](https://openneuro.org/datasets/ds004332).
+[Abstract presented at ISMRM 2022](https://archive.ismrm.org/2022/2061.html). The data used in thsi work is shared here [OpenNeuro](https://openneuro.org/datasets/ds004332).
 
 ### MotionCorrectedClinicalMRProtocol:
 Evaluating the performance of markerless prospective motion correction and selective reacquisition in a clinical protocol for brain MRI
