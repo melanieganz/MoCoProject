@@ -8,6 +8,8 @@ without motion artifacts"
 
 import nibabel as nib
 import numpy as np
+import argparse
+import sys
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 from Tenengrad import TG
 from AES import aes
@@ -121,3 +123,17 @@ def Compute_Metric(filename, metric, brainmask_file=False, ref_file=False,
     
     return res
 
+
+def main(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--filename', default=None, help="The filename to compute QC metrics over")
+    parser.add_argument('-m', '--mask', default=None, help="The filename of the brainmask file")
+    parser.add_argument('-c', '--metric', default='all', help="The metric to compute")
+    args = parser.parse_args()
+    #print(args)
+    res = Compute_Metric(args.filename, args.metric, brainmask_file=args.mask)
+    print(res[0])
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

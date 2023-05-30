@@ -7,7 +7,7 @@ Nicolas Pannetier, Theano Stavrinos, Peter Ng, Michael Herbst,
 Maxim Zaitsev, Karl Young, Gerald Matson, and Norbert Schuff'''
 
 import numpy as np
-from skimage.feature.texture import greycomatrix
+from skimage.feature.texture import graycomatrix
 from utils import bin_img, crop_img
 
 
@@ -59,7 +59,7 @@ def coent3d(img, brainmask = None, n_levels = 128, bin = True, crop = True, supr
     #Generate 2d co-ent matrix for each slice
     for i in range(vol_shape[0]):
         #Temporary co-ent matrix
-        tmp_co_oc_mat = greycomatrix(img[i,:,:],
+        tmp_co_oc_mat = graycomatrix(img[i,:,:],
                                  distances = [1],
                                  angles = [0*(np.pi/2),
                                            1*(np.pi/2),
@@ -82,11 +82,11 @@ def coent3d(img, brainmask = None, n_levels = 128, bin = True, crop = True, supr
     for j in range(vol_shape[1]):
         #temporary co-ent matrix
         #note only pi,-pi as angles
-        tmp_co_oc_mat = greycomatrix(img[:,j,:],
+        tmp_co_oc_mat = graycomatrix(img[:,j,:],
                                  distances = [1], 
                                  angles = [1*(np.pi/2), 
                                            3*(np.pi/2)])
-        #greycomatrix will generate 4d array
+        #graycomatrix will generate 4d array
         #The value P[i,j,d,theta] is the number of times
         #that grey-level j occurs at a distance d and
         #at an angle theta from grey-level i
