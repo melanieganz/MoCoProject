@@ -158,41 +158,53 @@ def Comp_All_Metrics(all_img, bm_file, ref_file, out_dir, save, tag, normal=True
         tmp, filename = os.path.split(all_img[i])
 
         # search for movement type
-        test = filename.find('MOCO_OFF')
+        #test = filename.find('MOCO_OFF')
+        test = filename.find('pmcoff')
         if test > 0:
-            descr = 'MOCO_OFF_'
+            #descr = 'MOCO_OFF_'
+            descr = 'pmcoff'
         else:
-            test = filename.find('MOCO_ON')
+            #test = filename.find('MOCO_ON')
+            test = filename.find('pmcon')
             if test > 0:
-                descr = 'MOCO_ON_'
+                #descr = 'MOCO_ON_'
+                descr = 'pmcon'
             else:
-                test = filename.find('MOCO_RETRO_')
+                test = filename.find('MOCO_RETRO_') #SPØRG
                 if test > 0:
                     descr = 'MOCO_RETRO_'
                 else:
                     print('ERROR: Filename ' + filename + ' does not contain MOCO description')
 
-        test = filename.find('_NOD_')
+        #test = filename.find('_NOD_')
+        test = filename.find('run-02')
         if test > 0:
-            descr = descr + 'NOD'
+            #descr = descr + 'NOD'
+            descr = descr + 'run-02'
         else:
-            test = filename.find('_STILL_')
+            #test = filename.find('_STILL_')
+            test = filename.find('run-01')
             if test > 0:
-                descr = descr + 'STILL'
+                #descr = descr + 'STILL'
+                descr = descr + 'run-01'
             else:
-                test = filename.find('_SHAKE_')
+                #test = filename.find('_SHAKE_')
+                test = filename.find('run-03')
                 if test > 0:
-                    descr = descr + 'SHAKE'
+                    #descr = descr + 'SHAKE'
+                    descr = descr + 'run-03'
                 else:
-                    test = filename.find('_SHIFT_')
+                    test = filename.find('_SHIFT_') #SPØRG
                     if test > 0:
                         descr = descr + 'SHIFT'                            
                     else:
                         print('EROOR: Filename ' + filename + ' does not contain motion description')
 
-        test = filename.find('_RR_')
+        #test = filename.find('_RR_')
+        test = filename.find('rec-wore')
         if test > 0:
-            descr = descr + '_RR'
+            #descr = descr + '_RR'
+            descr = descr + 'rec-wore'
         
         names.append(descr)
 

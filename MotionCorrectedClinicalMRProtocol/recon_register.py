@@ -27,14 +27,14 @@ def transformMRI(sub, niftiDir, outDir):
 
     '''
 
-    # use bbregister for T1 MPRAGE scans and MOCO_OFF_STILL_ scans 
+    # use bbregister for T1 MPRAGE scans and "*pmcoff*"+"*run-01*" scans 
     # corresponding to remaining sequences (in order to later apply to 
     # brainmask):
     regDir = outDir + 'regs/'
     if not os.path.exists(regDir):
         print('New regDir created')
         os.makedirs(regDir)
-    files = glob.glob(niftiDir+"*T1_MPR_*.nii")
+    files = glob.glob(niftiDir+"*mprage*.nii")
 
     for i in range(0, len(files)):
         movImg = os.path.abspath(niftiDir + os.path.basename(files[i]))
@@ -44,22 +44,22 @@ def transformMRI(sub, niftiDir, outDir):
         print(i, ' done')
 
     print('##################')
-    print('bbregister for T1_MPR_ done')
+    print('bbregister for mprage done')
     print('##################')
 
-    for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
-        if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
-            still_img = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
+    for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
+        if len(glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01*"+"*.nii"))>0:
+            still_img = glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01*"+"*.nii")[0]
             movImg = os.path.abspath(niftiDir + os.path.basename(still_img))
             regname = os.path.abspath(regDir + os.path.basename(still_img) + '.lta')
 
-            if tag in ['T1_TIRM_']:
+            if tag in ['t1tirm']:
                 subprocess.run('bbregister --s ' + sub + ' --mov '+  movImg + ' --reg ' + regname + ' --t1 --init-best-header', shell=True)
             else:
                 subprocess.run('bbregister --s ' + sub + ' --mov '+  movImg + ' --reg ' + regname + ' --t2 --init-best-header', shell=True)
 
     print('##################')
-    print('bbregister for MOCO_OFF_STILL_ of remaining scans done')
+    print('bbregister for "*pmcoff*"+"*run-01*" of remaining scans done')
     print('##################')
 
 
@@ -69,10 +69,10 @@ def transformMRI(sub, niftiDir, outDir):
         print('New regDir created')
         os.makedirs(regDir)
 
-    for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+    for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
         if len(glob.glob(niftiDir+"*"+tag+"*.nii"))>0:
             files = glob.glob(niftiDir+"*"+tag+"*.nii")
-            targImg = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
+            targImg = glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01*"+"*.nii")[0]
 
             for i in range(0, len(files)):
                 movImg = os.path.abspath(niftiDir + os.path.basename(files[i]))
@@ -116,16 +116,22 @@ def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
     # transform all scans:
     # output: *tag*_moved.nii
 
-    for tag in ['T1_MPR_', 'T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
-        if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
-            targImg = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
+    #for tag in ['T1_MPR_', 'T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+    print('inside')
+    for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
+        if len(glob.glob(niftiDir+'*'+tag + "*pmcoff*"+"*run-01*"+"*.nii"))>0:
+            targImg = glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01*"+"*.nii")[0]
+            print('targImg, ',targImg)
             files = glob.glob(niftiDir+"*"+tag+"*.nii")
+            print('files, ', files)
 
             for i in range(0, len(files)):
                 vol = os.path.abspath(niftiDir+os.path.basename(files[i]))
                 name2, ext2 = os.path.splitext(os.path.basename(files[i]))
                 vol_moved = outDir + name2 + '_moved' + ext2
                 regname = os.path.abspath(reg_dir + os.path.basename(files[i]) + '.lta').replace('_defaced', '')
+                print('vol', vol)
+                print('vol_moved', vol_moved)
 
                 # transform:
                 subprocess.run('mri_vol2vol --mov ' + vol + ' --targ ' + targImg + ' --o ' + vol_moved + ' --lta ' + regname, shell=True)
@@ -144,9 +150,11 @@ def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
         subprocess.run('mri_binarize --i ' + brainmask + ' --o ' + brainmask_bin_nii + ' --match 0 --inv', shell=True)
 
         # transform brainmask into still/MoCo_off domain of remaining scans:
-        for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
-            if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
-                still_img = glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii")[0]
+        #for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+        for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
+            #if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
+            if len(glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01"+"*.nii"))>0:
+                still_img = glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01"+"*.nii")[0]
                 bm_mov = outDir + 'bm_mov_'+os.path.basename(still_img)
                 T2 = niftiDir + os.path.basename(still_img)
                 regname = os.path.abspath(regDir + os.path.basename(still_img) + '.lta')
@@ -170,9 +178,11 @@ def Run_Long_Stream(name):
     # Run base recon all to create whithin-subject template:
     #  MoCo OFF scans
     tp = '-tp '+name # MoCo OFF Still has different name
-    for mov in ['NOD_RR_', 'SHAKE_RR_']:
-        tp += ' -tp '+'X_OFF_'+ mov+name
-    for mov in ['STILL_', 'NOD_RR_', 'SHAKE_RR_']:
+    #for mov in ['NOD_RR_', 'SHAKE_RR_']:
+    for mov in ['rec-wore_run-02', 'rec-wore_run-03']:
+        tp += ' -tp '+'X_OFF_'+ mov+namef
+    #for mov in ['STILL_', 'NOD_RR_', 'SHAKE_RR_']:
+    for mov in ['run-01', 'rec-wore_run-02', 'rec-wore_run-03']:
         tp += ' -tp '+'X_ON_'+ mov+name
 
     if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_ON_STILL_Vol_10/Data_Recon_All/X_BASE_OFF_'+name)==False:
@@ -182,10 +192,12 @@ def Run_Long_Stream(name):
     # Longitudinal runs:
     if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/'+name+'.long.X_BASE_OFF_'+name)==False:
         subprocess.run('recon-all -long '+name+' X_BASE_'+name+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True) # MoCo OFF Still has different name
-    for mov in ['NOD_RR_', 'SHAKE_RR_']:
+    #for mov in ['NOD_RR_', 'SHAKE_RR_']:
+    for mov in ['rec-wore_run-02', 'rec-wore_run-03']:
         if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_OFF_'+mov+name+'.long.X_BASE_OFF_'+name)==False:
             subprocess.run('recon-all -long X_OFF_'+mov+name+' X_BASE_'+name+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True)
-    for mov in ['STILL_', 'NOD_RR_', 'SHAKE_RR_']:
+    #for mov in ['STILL_', 'NOD_RR_', 'SHAKE_RR_']:
+    for mov in ['run-01', 'rec-wore_run-02', 'rec-wore_run-03']:
         if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ON_'+mov+name+'.long.X_BASE_ON_'+name)==False:
             subprocess.run('recon-all -long X_ON_'+mov+name+' X_BASE_'+name+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True)
 
