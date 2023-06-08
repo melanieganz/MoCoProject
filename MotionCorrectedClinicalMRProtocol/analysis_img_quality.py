@@ -139,7 +139,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 
 
             sh = np.shape(img) #dimensions of image
-            sl_dir = np.argmin(sh) #Here we figure out which axis/dimension is smallest
+            sl_dir = np.argmin(sh) #here we figure out which axis/dimension is smallest
 
 
             slice_dim = sl_dir
@@ -147,7 +147,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
             indx[slice_dim] = int(sh[sl_dir]/2)
 
             
-            plt.subplot(2,4,i) #Create plot for each patient
+            plt.subplot(2,4,i) #create plot for each patient
             plt.imshow(np.squeeze(img[indx]), cmap='gray')  #np.squeeze makes us go from shape (1, 256, 256) to shape (256, 256)
             plt.imshow(np.squeeze(bm[indx]), cmap='Reds', alpha=0.4)  #--
             plt.axis('off')
@@ -220,29 +220,19 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 #for i in range(20,23):
 #    subjs.append('Subject_'+str(i))
 
-
+# DEBUG - for now only run with one subject
 sub = 'sub-01'
-#Paths should be changed into a loop once we run for all subjects #TO DO
-root = '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
+#Paths should be changed into a loop once we run for all subjects 
+root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
+# Path on Windows laptop '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 # Path on Unix laptop '/home/melanie/Data/ds004332-download/'
-    
-#for sub in sub: #creating directories, for now only for one subject
-    #nifti_dir = '../BIDSdata_defaced/'+sub+'/'
 
-
-# Nifti_dir er anat/brainmasks
 nifti_dir = root+sub+'/anat/'
-
-
-    #nifti_dir = 'Downloads/derivatives/freesurfer'+sub+'/'
 bm_dir = root+'derivatives/freesurfer/'+sub+'/anat/'
 reg_dir = root+'derivatives/freesurfer/'+sub+'/transforms/'
-#SUBJECTS_DIR = root+ 'derivatives/freesurfer/transforms/'
 SUBJECTS_DIR = root +'derivatives/freesurfer/'+sub+'/transforms/'
 outDir = root+'derivatives/results/registrations/'+sub+'/'
 outDirMetrics = root+'derivatives/results/metricsresults/'+sub+'/'
-
-
 
 # Original folder structure
 #for sub in subjs:
@@ -253,13 +243,7 @@ outDirMetrics = root+'derivatives/results/metricsresults/'+sub+'/'
     #outDir = '../Results/Registrations/'+sub+'/'
     #outDirMetrics = '../Results/Metrics_Results/'+sub+'/'
 
-
-#subjects_dir
-#'/home/melanie/Data/ds004332-download/derivatives/freesurfer/sub-01/transforms/'
-#'/home/melanie/Data/ds004332-download/derivatives/freesurfer/sub-01/anat/'
-
-
-save = '2023_06_07'
+save = '2023_06_08'
     
     # Which steps to perform:
     # by default we have performed registrations in FreeSurfer and provide those for you
@@ -276,13 +260,6 @@ apply_transform_bm = False
 apply_transform = True
 metrics = True
 show_bm_reg = False
-
-
-
-
-
-
-
 
 #Run the function
 FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)

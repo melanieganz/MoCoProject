@@ -117,21 +117,16 @@ def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
     # output: *tag*_moved.nii
 
     #for tag in ['T1_MPR_', 'T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
-    print('inside')
     for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
         if len(glob.glob(niftiDir+'*'+tag + "*pmcoff*"+"*run-01*"+"*.nii"))>0:
             targImg = glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01*"+"*.nii")[0]
-            print('targImg, ',targImg)
             files = glob.glob(niftiDir+"*"+tag+"*.nii")
-            print('files, ', files)
 
             for i in range(0, len(files)):
                 vol = os.path.abspath(niftiDir+os.path.basename(files[i]))
                 name2, ext2 = os.path.splitext(os.path.basename(files[i]))
                 vol_moved = outDir + name2 + '_moved' + ext2
                 regname = os.path.abspath(reg_dir + os.path.basename(files[i]) + '.lta').replace('_defaced', '')
-                print('vol', vol)
-                print('vol_moved', vol_moved)
 
                 # transform:
                 subprocess.run('mri_vol2vol --mov ' + vol + ' --targ ' + targImg + ' --o ' + vol_moved + ' --lta ' + regname, shell=True)
@@ -180,7 +175,7 @@ def Run_Long_Stream(name):
     tp = '-tp '+name # MoCo OFF Still has different name
     #for mov in ['NOD_RR_', 'SHAKE_RR_']:
     for mov in ['rec-wore_run-02', 'rec-wore_run-03']:
-        tp += ' -tp '+'X_OFF_'+ mov+namef
+        tp += ' -tp '+'X_OFF_'+ mov+name
     #for mov in ['STILL_', 'NOD_RR_', 'SHAKE_RR_']:
     for mov in ['run-01', 'rec-wore_run-02', 'rec-wore_run-03']:
         tp += ' -tp '+'X_ON_'+ mov+name
