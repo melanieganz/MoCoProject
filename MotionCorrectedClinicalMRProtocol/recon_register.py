@@ -116,6 +116,7 @@ def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
     # transform all scans:
     # output: *tag*_moved.nii
 
+
     #for tag in ['T1_MPR_', 'T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
     for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
         if len(glob.glob(niftiDir+'*'+tag + "*pmcoff*"+"*run-01*"+"*.nii"))>0:
@@ -127,6 +128,7 @@ def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
                 name2, ext2 = os.path.splitext(os.path.basename(files[i]))
                 vol_moved = outDir + name2 + '_moved' + ext2
                 regname = os.path.abspath(reg_dir + os.path.basename(files[i]) + '.lta').replace('_defaced', '')
+                print('regname : ', regname)
 
                 # transform:
                 subprocess.run('mri_vol2vol --mov ' + vol + ' --targ ' + targImg + ' --o ' + vol_moved + ' --lta ' + regname, shell=True)

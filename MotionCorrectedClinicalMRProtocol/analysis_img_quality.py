@@ -121,17 +121,15 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
         print('//                                                  //')
         print('//////////////////////////////////////////////////////')
         
-        
+
     # check brainmasks correctly registered:
     plt.figure(figsize=(10,7))
     i = 1
-    #for tag in ['mprage' ]:   #updated name for 1 scan for sub1 to test. should be for all types of scans
+
     for tag in ['mprage', 'flair', 't2tse', 't1tirm', 't2star']:
-        #print('inside mprage bm')
-        #print(outDir, tag)
-        print(glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii'))
+        #print(glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii'))
         if len(glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii')) > 0:
-            #print('inside if')
+            print('inside if')
             img_file = glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii')[0]
             img = nib.load(img_file).get_fdata().astype(np.uint16)
             bm_file = glob.glob(bm_dir+'*'+tag+'*run-01*'+'mask.nii')[0]
@@ -141,18 +139,19 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
             sh = np.shape(img) #dimensions of image
             sl_dir = np.argmin(sh) #here we figure out which axis/dimension is smallest
 
-
             slice_dim = sl_dir
-            indx = [slice(None)]
+            indx = [slice(None)]*img.ndim
+
+
             indx[slice_dim] = int(sh[sl_dir]/2)
 
-            
             plt.subplot(2,4,i) #create plot for each patient
-            plt.imshow(np.squeeze(img[indx]), cmap='gray')  #np.squeeze makes us go from shape (1, 256, 256) to shape (256, 256)
-            plt.imshow(np.squeeze(bm[indx]), cmap='Reds', alpha=0.4)  #--
+            plt.imshow(np.squeeze(img[tuple(indx)]), cmap='gray')  #np.squeeze makes us go from shape (1, 256, 256) to shape (256, 256)
+            plt.imshow(np.squeeze(bm[tuple(indx)]), cmap='Reds', alpha=0.4)  #--
             plt.axis('off')
             plt.title('Brainmask '+tag, fontsize = 10)
             i+=1
+
         
     plt.savefig(outDir+'Check_Brainmask', dpi=300)
     if show_bm_reg:
@@ -165,6 +164,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
         
         if not os.path.exists(outDirMetrics):
             os.makedirs(outDirMetrics)
+            print(outDirMetrics)
         
         # sort different sequences/contrasts:
         test = 0
@@ -173,7 +173,8 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
         for i in range(len(all_img)):
             tmp, filename = os.path.split(all_img[i])
             # search for different sequence types:
-            for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']: #Should be changed to new names
+            for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
+
                 test = filename.find(tag)
                 if test > 0:
                     newpath = tmp + '/' + tag #Create folders if they don't already exist
@@ -212,20 +213,18 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 ''' (1) Run analysis on prospectively corrected and uncorrected data:'''
 # define specific input parameters for the current run:
 
-#subjs = []
-#for i in range(1,10):
-#    subjs.append('Subject_0'+str(i))
-#for i in range(10,20):
-#    subjs.append('Subject_'+str(i))
-#for i in range(20,23):
-#    subjs.append('Subject_'+str(i))
+
 
 # DEBUG - for now only run with one subject
-sub = 'sub-01'
+sub = 'sub-02'
 #Paths should be changed into a loop once we run for all subjects 
 root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 # Path on Windows laptop '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 # Path on Unix laptop '/home/melanie/Data/ds004332-download/'
+
+# Testing Path (Puk)
+root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
+
 
 nifti_dir = root+sub+'/anat/'
 bm_dir = root+'derivatives/freesurfer/'+sub+'/anat/'
@@ -264,5 +263,34 @@ show_bm_reg = False
 #Run the function
 FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
 
+
+
+
+
+#Run on all subjects:
+
+subjs = []
+for i in range(1,10):
+    subjs.append('sub-0'+str(i))
+for i in range(10,20):
+    subjs.append('sub-'+str(i))
+for i in range(20,23):
+    subjs.append('sub-'+str(i))
+
+
+
+#for sub in subjs:
+#    root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
+#
+#    nifti_dir = root + sub + '/anat/'
+#    bm_dir = root + 'derivatives/freesurfer/' + sub + '/anat/'
+#    reg_dir = root + 'derivatives/freesurfer/' + sub + '/transforms/'
+#    SUBJECTS_DIR = root + 'derivatives/freesurfer/' + sub + '/transforms/'
+#    outDir = root + 'derivatives/results/registrations/' + sub + '/'
+#    outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
+
+#    print("Processing subject:", sub) #checking
+
+#    FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
 
 
