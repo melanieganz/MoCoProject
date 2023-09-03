@@ -10,14 +10,15 @@ from transforms3d.euler import mat2euler
 
 
 # define scan times for different sequences:
-ScanTimes = {'STILL_T1_MPR':np.array([4,40]), 'NOD_T1_MPR':np.array([5,12]), 
+ScanTimes = {'STILL_T1_MPR':np.array([4,40]), 'NOD_T1_MPR':np.array([5,12]),       #Ved ikke hvornår der refereres til ScanTimes
              'SHAKE_T1_MPR':np.array([5,12]), 'STILL_T1_TIRM':np.array([3,10]), 
              'NOD_T1_TIRM':np.array([3,51]), 'STILL_T2_TSE':np.array([2,30]), 
              'NOD_T2_TSE':np.array([3,6]),
              'STILL_T2_FLAIR':np.array([4,12]), 'NOD_T2_FLAIR':np.array([4,47]),
              'STILL_T2STAR':np.array([2,25]), 'NOD_T2STAR':np.array([2,25]),
-             'STILL_EPI_SWI':np.array([0,52]), 'NOD_EPI_SWI':np.array([0,52]),
-             'STILL_DIFF':np.array([0,42]), 'NOD_DIFF':np.array([0,42])}
+             'STILL_EPI_SWI':np.array([0,52]), 'NOD_EPI_SWI':np.array([0,52])}
+             #'STILL_DIFF':np.array([0,42]), 'NOD_DIFF':np.array([0,42])} #ignore
+
 
 
 def ParametersFromTransf(A):

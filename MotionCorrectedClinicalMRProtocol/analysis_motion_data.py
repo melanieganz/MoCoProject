@@ -12,16 +12,22 @@ from statistical_tests import PerformWilcoxonMotion
 
 
 # Define directories, sequences and volunteers to analyse:
-out_dir = '../Results/Motion_Estimates/'
+#out_dir = '../Results/Motion_Estimates/'
+
+out_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/results/Motion_Estimates/'
+
 
 subdir = [] 
 for i in range(1,10):
-    subdir.append('Subject_0'+str(i)+'/')
+    subdir.append('sub_0'+str(i)+'/')
 for i in range(10,20):
-    subdir.append('Subject_'+str(i)+'/')
+    subdir.append('sub_'+str(i)+'/')
 for i in range(20,23):
-    subdir.append('Subject_'+str(i)+'/')
-sequs = ['T1_MPR', 'T2_TSE', 'T1_TIRM', 'T2_FLAIR', 'T2STAR', 'DIFF']
+    subdir.append('sub_'+str(i)+'/')
+sequs = ['mprage', 't2tse', 't1tirm', 'flair', 't2star']
+#sequs = ['T1_MPR', 'T2_TSE', 'T1_TIRM', 'T2_FLAIR', 'T2STAR', 'DIFF']
+
+
 
 
 save = '_2022_06_02'   
@@ -33,9 +39,12 @@ plot = False
 
 if new_calc:
     for sequ in sequs:
-        motion = ['STILL', 'NOD']
-        if sequ == 'T1_MPR':
-            motion = ['STILL', 'NOD', 'SHAKE']
+        #motion = ['STILL', 'NOD']
+        motion = ['run-01', 'run-02']
+        #if sequ == 'T1_MPR':
+        if sequ == ['mprage']:
+            #motion = ['STILL', 'NOD', 'SHAKE']
+            motion = ['run-01','run-02','run-03']
         
         for mot in motion:
             save_list = []
@@ -46,29 +55,32 @@ if new_calc:
                 print(subj)
                 
                 # skip all volunteers where the following sequences were not acquired
-                if sequ in ['DIFF', 'T2_FLAIR', 'T2STAR']:
-                    #print('inside first if')
-                    tmp = os.listdir('../BIDSdata_defaced/'+subj+'/')
-                    tmp_ = ''
+                #if sequ in ['DIFF', 'T2_FLAIR', 'T2STAR']:
+                # DIFF
+                if sequ in ['flair', 't2star']:
+                    print('inside first if')
+                    #tmp = os.listdir('../BIDSdata_defaced/'+subj+'/') #CHANGE
+                    tmp = os.listdir('../source'+subj+'/')
                     test = sequ
-                    if sequ == 'DIFF':
-                        test = 'TRACEW_B0'
+                    if sequ == 'DIFF': #CHANGE
+                        test = 'TRACEW_B0' #CHANGE
                     if test not in tmp_.join(tmp):
                         continue
                 
                 # MoCo On:
-                name = 'MOCO_ON_'+mot+'_*'+sequ+'_'   
+                name = 'MOCO_ON_'+mot+'_*'+sequ+'_'
+
                 seq_type = mot+'_'+sequ    
-                if sequ == 'TRACEW_B0':
+                if sequ == 'TRACEW_B0':    #Change #Ignore because of DIFF?
                     seq_type = mot+'_DIFF'
                             
                 magn_On, RMS_On, med_disp_On, max_disp_On = CalcMotionMetricsforScan(subj, name, 
                                                                                      seq_type)
                 
                 # MoCo Off:
-                name = 'MOCO_OFF_'+mot+'_*'+sequ+'_'   
+                name = 'MOCO_OFF_'+mot+'_*'+sequ+'_'
                 seq_type = mot+'_'+sequ    
-                if sequ == 'TRACEW_B0':
+                if sequ == 'TRACEW_B0': #Change #Ignore because of DIFF?
                     seq_type = mot+'_DIFF'
                 
                 magn_Off, RMS_Off, med_disp_Off, max_disp_Off = CalcMotionMetricsforScan(subj, 
@@ -92,10 +104,12 @@ if new_calc:
 # stack p-values first STILL, then NOD, then SHAKE, in each cathegory: RMS, then median, then maximum
 p_values = []
 effect_size = []
-for mot in ['STILL', 'NOD', 'SHAKE']:
+#for mot in ['STILL', 'NOD', 'SHAKE']:
+for mot in ['run-01', 'run-02', 'run-03']:
     RMS, median, maxim, descr = [], [], [], []
     for sequ in sequs:
-        if mot == 'SHAKE' and sequ != 'T1_MPR':
+        #if mot == 'SHAKE' and sequ != 'T1_MPR':
+        if mot == 'run-03' and sequ != 'mprage':
             continue
         # find the most recent data:
         file = glob.glob(out_dir+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
@@ -149,10 +163,13 @@ for mot in ['STILL', 'NOD']:
         descr.append(sequ)
         descr.append(sequ)
     
-    if mot == 'NOD':
-        mot_s = 'SHAKE'
+    #if mot == 'NOD':
+    if mot == 'run-02':
+        #mot_s = 'SHAKE'
+        mot_s = 'run-03'
         RMS_s, median_s, maxim_s, descr_s = [], [], [], []
-        sequ = 'T1_MPR'
+        #sequ = 'T1_MPR'
+        sequ = 'mprage'
         # find the most recent data:
         file = glob.glob(out_dir+'MotionMetrics_'+mot_s+'/'+sequ+'*.txt')
         if len(file)>0:
@@ -184,8 +201,10 @@ for mot in ['STILL', 'NOD']:
     for i in range(int(len(RMS)/2)):
         colors.append('tab:orange')
         colors.append('tab:blue')
-        labels.append('MOCO_OFF')
-        labels.append('MOCO_ON')
+        #labels.append('MOCO_OFF')
+        #labels.append('MOCO_ON')
+        labels.append('pmcoff')
+        labels.append('pmcon')
     small = dict(markersize=3)
         
     
@@ -194,12 +213,15 @@ for mot in ['STILL', 'NOD']:
     for i in range(len(descr)):
         if descr[i]=='TRACEW_B0':
             descr[i]='DWI'
-        if descr[i]=='T1_TIRM':
-            descr[i]='T1_STIR'
-        if descr[i]=='T2STAR':
-            descr[i]='T2*'
+        #if descr[i]=='T1_TIRM':
+        if descr[i]=='t1tirm':
+            descr[i]='T1_STIR' #CHANGE ?
+        #if descr[i]=='T2STAR':
+        if descr[i]=='t2star':
+            descr[i]='T2*' #CHANGE?
     
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         plt.figure(figsize=(10,10))
         plt.subplot(3,1,1)
     else:
@@ -209,7 +231,8 @@ for mot in ['STILL', 'NOD']:
     MakeBoxplot(RMS, colors)
     for i in range(len(mean_RMS)):
         plt.plot(i+1, mean_RMS[i], '.', c=colors[i], ls='')
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         for y1, y2 in zip(RMS[2], RMS[3]):
                 plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
         for y1, y2 in zip(RMS[8], RMS[9]):
@@ -219,15 +242,18 @@ for mot in ['STILL', 'NOD']:
     plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
     lim = plt.gca().get_ylim()
     plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         use = 0
         low = -1
-    if mot == 'NOD':
+    #if mot == 'NOD':
+    if mot == 'run-02':
         use = 1
         low = -4
     
     max_RMS = [np.amax(RMS[i]) for i in range(len(RMS))]
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         Show_Stars(p_values_cor_still[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS)
         
         plt.subplot(3,1,2)
@@ -239,7 +265,8 @@ for mot in ['STILL', 'NOD']:
     MakeBoxplot(median, colors)
     for i in range(len(mean_RMS)):
         plt.plot(i+1, mean_med[i], '.', c=colors[i], ls='')
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         for y1, y2 in zip(median[2], median[3]):
                 plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
         for y1, y2 in zip(median[8], median[9]):
@@ -250,7 +277,8 @@ for mot in ['STILL', 'NOD']:
     plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
     
     max_med = [np.amax(median[i]) for i in range(len(RMS))]
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         Show_Stars(p_values_cor_still[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
         plt.subplot(3,1,3)
     else:
@@ -262,7 +290,8 @@ for mot in ['STILL', 'NOD']:
         plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='', label=labels[i])
     for i in range(2,len(mean_RMS)):
         plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='')
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         for y1, y2 in zip(maxim[2], maxim[3]):
                 plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
         for y1, y2 in zip(maxim[8], maxim[9]):
@@ -271,19 +300,22 @@ for mot in ['STILL', 'NOD']:
     plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
     lim = plt.gca().get_ylim()
     plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         use = 0
         low = -3
     
     max_max = [np.amax(maxim[i]) for i in range(len(RMS))]
-    if mot=='STILL':
+    #if mot=='STILL':
+    if mot=='run-01':
         Show_Stars(p_values_cor_still[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
     else:
         Show_Stars(p_values_cor_nod[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
     
     plt.legend(loc='upper center', ncol = 2, bbox_to_anchor=(0.5, -0.3), fontsize=11)
     
-    if mot == 'NOD':
+    #if mot == 'NOD':
+    if mot == 'run-01':
         ax4=plt.subplot2grid((3,5), (0,4))
         ax1.get_shared_y_axes().join(ax1, ax4)
         MakeBoxplot(RMS_s, colors)

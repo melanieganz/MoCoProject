@@ -111,10 +111,8 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
         # if you start from scratch and do not want to use the registration 
         # transforms we provide, the following function needs to be changed
         # to load different registration files!
-        print('before')
         applyTransformMRI(nifti_dir, reg_dir, bm_dir, outDir,
                           apply_transform_bm)
-        print('after')
         print('//////////////////////////////////////////////////////')
         print('//                                                  //')
         print('//             applyTransformMRI done               //')
@@ -127,7 +125,6 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
     i = 1
 
     for tag in ['mprage', 'flair', 't2tse', 't1tirm', 't2star']:
-        #print(glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii'))
         if len(glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii')) > 0:
             print('inside if')
             img_file = glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii')[0]
@@ -217,6 +214,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 
 # DEBUG - for now only run with one subject
 sub = 'sub-02'
+
 #Paths should be changed into a loop once we run for all subjects 
 root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 # Path on Windows laptop '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
@@ -224,6 +222,7 @@ root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 
 # Testing Path (Puk)
 root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
+#root = '/home/ds004332-download/' #Nyeste openneuro download
 
 
 nifti_dir = root+sub+'/anat/'
@@ -269,7 +268,7 @@ FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetric
 
 #Run on all subjects:
 
-subjs = []
+"""subjs = []
 for i in range(1,10):
     subjs.append('sub-0'+str(i))
 for i in range(10,20):
@@ -278,19 +277,19 @@ for i in range(20,23):
     subjs.append('sub-'+str(i))
 
 
-
-#for sub in subjs:
-#    root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
+for sub in subjs:
+    print('Initiating FullAnalysis for', sub)
+    root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
 #
-#    nifti_dir = root + sub + '/anat/'
-#    bm_dir = root + 'derivatives/freesurfer/' + sub + '/anat/'
-#    reg_dir = root + 'derivatives/freesurfer/' + sub + '/transforms/'
-#    SUBJECTS_DIR = root + 'derivatives/freesurfer/' + sub + '/transforms/'
-#    outDir = root + 'derivatives/results/registrations/' + sub + '/'
-#    outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
+    nifti_dir = root + sub + '/anat/'
+    bm_dir = root + 'derivatives/freesurfer/' + sub + '/anat/'
+    reg_dir = root + 'derivatives/freesurfer/' + sub + '/transforms/'
+    SUBJECTS_DIR = root + 'derivatives/freesurfer/' + sub + '/transforms/'
+    outDir = root + 'derivatives/results/registrations/' + sub + '/'
+    outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
 
-#    print("Processing subject:", sub) #checking
 
-#    FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
+    FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
+    print('Finalized FullAnalysis for', sub)"""
 
 
