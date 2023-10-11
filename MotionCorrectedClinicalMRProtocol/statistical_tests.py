@@ -38,15 +38,21 @@ def PerformWilcoxonMotion(type_metric, motion, values_metrics, out_dir, save, op
     p_values, stat = [], []
     
     for values, metr in zip(values_metrics, type_metric):
-        if motion in ['STILL', 'NOD']:
-            ind = np.array([[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]])
+        #if motion in ['STILL', 'NOD']:
+        if motion in ['run-01', 'run-02']:
+            #ind = np.array([[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]]) #det sidste svarer til diff, så det skal tilbage når diff er klar
+            ind = np.array([[0,1], [2,3], [4,5], [6,7], [8,9]])
             alt = 'two-sided'
                 
-        elif motion == 'SHAKE':
+        #elif motion == 'SHAKE':
+        elif motion == 'run-03':
             ind = np.array([[0,1]])
             alt = 'two-sided'
         
         for index in ind:
+            print('motion', motion)
+            print('index', index)
+            print('values', values)
             tmp, p = wilcoxon(values[index[0]], values[index[1]], alternative=alt)
             text.append(metr+' '+str(index[0])+' '+str(index[1])+' '+alt+': p = '+str(p))
             p_values.append(p)
@@ -61,20 +67,24 @@ def PerformWilcoxonMotion(type_metric, motion, values_metrics, out_dir, save, op
     text =  ['Tests RMS, median, max: ']
     stat = np.array(stat)
     n = []
+    # sequ = ['MPR', 'TSE', 'TIRM', 'FLAIR', 'T2STAR', 'DWI']
+    sequ = ['mprage', 't2tse', 't1tirm', 'flair', 't2star']
     for j in [1,2,3]:
-        if motion in ['STILL', 'NOD']:
-            for i in range(0,6):
+        #if motion in ['STILL', 'NOD']:
+        if motion in ['run-01', 'run-02']:
+            for i in range(0,len(sequ)):
                 n.append(len(values_metrics[0][2*i]))
-        elif motion == 'SHAKE':
+        #elif motion == 'SHAKE':
+        elif motion == 'run-03':
             n.append(len(values_metrics[0][0]))
     n = np.array(n)
     mu = n*(n+1)/4
     s = np.sqrt(n*(n+1)*(2*n+1)/24)
     z = (stat-mu)/s
     ES = np.abs(z)/np.sqrt(n)
-    sequ = ['MPR', 'TSE', 'TIRM', 'FLAIR', 'T2STAR', 'DWI']
+
     for j in range(0,len(n)):
-        text.append(str(j)+' '+sequ[j%6]+' n:'+str(n[j])+' ES: '+str(ES[j]))
+        text.append(str(j)+' '+sequ[j%len(sequ)]+' n:'+str(n[j])+' ES: '+str(ES[j]))
     
     print(n,ES)
     np.savetxt(out_dir+'MotionMetrics_'+motion+'/EffectSize'+save+'.txt', text, fmt='%s')
@@ -117,21 +127,24 @@ def PerformWilcoxonAllImg(type_metric, values, sequ, out_dir, save, option=False
     text =  ['Tests '+type_metric+': ']
     p_values = []
 
-    if sequ == 'T1_MPR':
+    #if sequ == 'T1_MPR':
+    if sequ == 'mprage':
         ind = np.array([[0,1], [2,3], [4,5], [2,5],[2,4], [3,5], [6,7], [8,9], [6,9], [6,8], [7,9]])
     
 
-    elif sequ in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+    #elif sequ in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+    elif sequ in ['t2star']:
         ind = np.array([[0,1],[2,3]])
 
-        if option == 'diff':
-            ind = np.array([[0,1], [1,2], [0,2]])
+        #if option == 'diff':
+        #    ind = np.array([[0,1], [1,2], [0,2]])
     else:
         ind = np.array([[0,1],[2,3], [4,5], [2,5], [2,4], [3,5]])
         
     altern = 'two-sided' 
     
-    if type_metric=='QS' and sequ == 'T2STAR':
+    #if type_metric=='QS' and sequ == 'T2STAR':
+    if type_metric=='QS' and sequ == 't2star':
         p_values = [0,0]  
     else:
         for index in ind:        
@@ -158,15 +171,15 @@ def PerformWilcoxonAllImg(type_metric, values, sequ, out_dir, save, option=False
     text.append(p_values_cor.astype(str))
 
     text = np.array(text, dtype=object)
-    if option == 'diff':
-        tmp = out_dir+'ParametricTests/'+sequ+'/Tests_diff_'+type_metric+save+'.txt'
-        if not os.path.exists(out_dir+'ParametricTests/'+sequ+'/'):
-            os.makedirs(out_dir+'ParametricTests/'+sequ+'/')
-        np.savetxt(tmp, text, fmt='%s')
-    else:
-        if not os.path.exists(out_dir+'ParametricTests/'+sequ+'/'):
-            os.makedirs(out_dir+'ParametricTests/'+sequ+'/')
-        np.savetxt(out_dir+'ParametricTests/'+sequ+'/Tests_'+type_metric+save+'.txt', text, fmt='%s')
+    #if option == 'diff':
+    #    tmp = out_dir+'ParametricTests/'+sequ+'/Tests_diff_'+type_metric+save+'.txt'
+    #    if not os.path.exists(out_dir+'ParametricTests/'+sequ+'/'):
+    #        os.makedirs(out_dir+'ParametricTests/'+sequ+'/')
+    #    np.savetxt(tmp, text, fmt='%s')
+    #else:
+    #    if not os.path.exists(out_dir+'ParametricTests/'+sequ+'/'):
+    #        os.makedirs(out_dir+'ParametricTests/'+sequ+'/')
+    #    np.savetxt(out_dir+'ParametricTests/'+sequ+'/Tests_'+type_metric+save+'.txt', text, fmt='%s')
 
     return p_values_cor, rej, ind, altern
 
@@ -205,11 +218,13 @@ def PerformWilcoxonRetro(type_metric, values, sequ, out_dir, save, option=False)
     text =  ['Tests '+type_metric+': ']
     p_values = []
 
-    if sequ == 'T1_MPR':
+    #if sequ == 'T1_MPR':
+    if sequ == 'mprage':
         ind = np.array([[0,1], [1,2], [0,2], [3,4], [4,5], [3,5], [6,7], [7,8], [6,8], [3,8], [3,6], [4,7], [5,8], [9,10], [10,11], [9,11], [12,13], [13,14], [12,14], [9,14], [9,12], [10,13], [11,14]])
 
 
-    elif sequ in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+    #elif sequ in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+    elif sequ in ['t2star']:
         ind = np.array([[0,1],[2,3]])
 
     else:

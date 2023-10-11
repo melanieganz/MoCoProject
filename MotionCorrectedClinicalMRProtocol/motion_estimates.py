@@ -20,6 +20,8 @@ ScanTimes = {'STILL_T1_MPR':np.array([4,40]), 'NOD_T1_MPR':np.array([5,12]),    
              #'STILL_DIFF':np.array([0,42]), 'NOD_DIFF':np.array([0,42])} #ignore
 
 
+root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
+
 
 def ParametersFromTransf(A):
     '''
@@ -176,10 +178,16 @@ def FindALN(subj, name, bids_dir=None, track_dir=None):
         filename of ALN file.
 
     '''
+
+    print(subj)
     if bids_dir is None:
-        bids_dir = '../BIDSdata_defaced/'+subj  
+        #bids_dir = '../BIDSdata_defaced/'+subj  #niftidir skal ændres
+        bids_dir = root + subj + 'anat/'
     if track_dir is None:
-        track_dir = '../TCLData/'+subj
+        #track_dir = '../TCLData/'+subj #source skal ændres
+        track_dir = root + 'source/' + subj + 'TCLdata/'
+
+
     
     all_aln = glob.glob(track_dir+'*ALN*.tsa')
     file = glob.glob(bids_dir+'*'+name+'*.json')[0] 
@@ -235,21 +243,27 @@ def FindPOA_TIM(subj, name, bids_dir=None, track_dir=None):
         MOT file (sequence labels and start times).
 
     '''
-    
+
+
     if bids_dir is None:
-        bids_dir = '../BIDSdata_defaced/'+subj   
+        #bids_dir = '../BIDSdata_defaced/'+subj
+        bids_dir = root+subj+'anat/'
     if track_dir is None:
-        track_dir = '../TCLData/'+subj
-    
-    all_tim = glob.glob(track_dir+'*TIM*.tst')
-    file = glob.glob(bids_dir+'*'+name+'*.json')[0] 
+        #track_dir = '../TCLData/'+subj
+        track_dir = root + 'source/'+subj+'/TCLdata/'
+
+
+
+    all_tim = glob.glob(track_dir+'*TIM.tst')  # VIL IKKE GENKENDE
+    #all_tim = glob.glob('/home/melanie/FromOpenNeuro/renamed_ds004332-download/source/sub-01/TCLData/vEbGqOHjTn_134650_TIM.tst')
+    file = glob.glob(bids_dir+'*'+name+'*.json')[0]
     acqu_time_j = GetAcquFromJSON(file)
     acqu_time = float(acqu_time_j[0:2]+acqu_time_j[3:5]+acqu_time_j[6:])
     #json file for time XX:XX:0Y.XXX is saved as XX:XX:Y.XXX
     if float(acqu_time_j[6:])<10:
         acqu_time = float(acqu_time_j[0:2]+acqu_time_j[3:5]+'0'+acqu_time_j[6:])
     
-    
+
     for t in all_tim:
         find = int(search_string_in_file(t, 'Point Cloud Number')[0][0])
         with open(t, 'r') as read_obj:
@@ -258,11 +272,12 @@ def FindPOA_TIM(subj, name, bids_dir=None, track_dir=None):
         tmp2 = lines[-2]
         start = float(tmp1[-13:][0:2]+tmp1[-13:][3:5]+tmp1[-13:][6:])
         end = float(tmp2[-13:][0:2]+tmp2[-13:][3:5]+tmp2[-13:][6:])
-                       
-        if acqu_time > start and acqu_time < end:
+
+        if acqu_time > start and acqu_time < end:   #Defines tim ONLY if if-statement is True
             tim = t
-            
-    poa = tim[0:-7]+'POA.tsp'
+
+
+    poa = tim[0:-7]+'POA.tsp'                       #refers to tim, outside if. Problem if if-statement is not true
     mot = tim[0:-7]+'MOT.tsm'
 
     return poa, tim, mot
@@ -293,7 +308,8 @@ def GetTimeFromTCL(mot, name, subj=None, track_dir=None):
     '''
     
     if track_dir is None:
-        track_dir = '../BIDSdata_defaced/'+subj  
+        #track_dir = '../BIDSdata_defaced/'+subj
+        track_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'+subj+'anat/'
     
     find = int(search_string_in_file(mot, 'Label Position')[0][0])
     
@@ -355,14 +371,20 @@ def GetTimeFromTxt(sub, name):
     '''
     
     #find the file with the corresponding scan scart:
-    sequ = name.split('*')[1]
-    file = '../TCLData/ScanEndTimes_'+sequ+'07_30.txt'
-    
+    sequ = name.split('*')[0]
+
+    #file = '../TCLData/ScanEndTimes_'+sequ+'07_30.txt'
+    file = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/source/ScanEndTimes_' + sequ + '_07_30.txt'
+
+
     # search for sub and name:
+
     find = int(search_string_in_file(file, sub)[0][0])
+
     with open(file, 'r') as read_obj:
         lines = read_obj.readlines()
-    
+
+
     time = None
     for l in lines[find-1:]:
         if name[:-1] in l and sub in l:
@@ -373,6 +395,7 @@ def GetTimeFromTxt(sub, name):
         print('Does the name contain an *?')
 
     return time
+
 
 
 def FindFrameNr(tim, subj, name, seq_type, mot, bids_dir=None, track_dir=None):
@@ -407,9 +430,11 @@ def FindFrameNr(tim, subj, name, seq_type, mot, bids_dir=None, track_dir=None):
     '''
     
     if bids_dir is None:
-        bids_dir = '../BIDSdata_defaced/'+subj  
+        #bids_dir = '../BIDSdata_defaced/'+subj
+        bids_dir = root + subj + 'anat/'
     
-    file = glob.glob(bids_dir+'*'+name+'*.json')[0] 
+    file = glob.glob(bids_dir+'*'+name+'*.json')[0]  #Den kigger efter en fil der er navngivet på formen 'MOCO_ON_run-XX_mprage_ .... Disse json-filer er navngivet efter BIDS.
+
     acqu_time_j = GetAcquFromJSON(file)
     #json file for time XX:XX:0Y.XXX is saved as XX:XX:Y.XXX
     if float(acqu_time_j[6:])<10:
@@ -423,7 +448,6 @@ def FindFrameNr(tim, subj, name, seq_type, mot, bids_dir=None, track_dir=None):
     start_time = acqu_time
     #start_time = start_time[0:2]+':'+start_time[2:4]+':'+start_time[4:]
     end_time = end_time[0:2]+':'+end_time[2:4]+':'+end_time[4:]
-    # print(start_time, end_time)
     
     frames, tmp1, tmp2, remote = np.loadtxt(tim, skiprows=11, dtype=str, unpack=True)
     frame_start = frames[remote>start_time][0]
@@ -516,12 +540,14 @@ def ExtractMotionParForScan(subj, name, seq_type):
 
     '''
     
-    bids_dir = '../BIDSdata_defaced/'+subj   
-    track_dir = '../TCLData/'+subj
+    #bids_dir = '../BIDSdata_defaced/'+subj
+    bids_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'+subj+'anat/'
+    #track_dir = '../TCLData/'+subj
+    track_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/source/'+subj+'TCLdata/'
     
     name_ = name
-    if 'DIFF' in name:
-        name_ = name.replace('DIFF', 'TRACEW_B0')
+    #if 'DIFF' in name:
+    #    name_ = name.replace('DIFF', 'TRACEW_B0')
     mat_file, time_file, mot_file = FindPOA_TIM(subj, name_, bids_dir, track_dir)
     
     frame_nr, mat, times = GetMatrices(time_file, mat_file, mot_file, subj, 
@@ -576,13 +602,15 @@ def ExtractMotionMatForScan(subj, name, seq_type, track_dir=None, bids_dir=None)
 
     '''
     if bids_dir is None:
-        bids_dir = '../BIDSdata_defaced/'+subj   
+        #bids_dir = '../BIDSdata_defaced/'+subj
+        bids_dir = root+subj+'anat/'
     if track_dir is None:
-        track_dir = '../TCLData/'+subj
+        #track_dir = '../TCLData/'+subj
+        track_dir = root+'source/' + subj + 'TCLdata/'
     
     name_ = name
-    if 'DIFF' in name:
-        name_ = name.replace('DIFF', 'TRACEW_B0')
+    #if 'DIFF' in name:
+    #    name_ = name.replace('DIFF', 'TRACEW_B0')
     mat_file, time_file, mot_file = FindPOA_TIM(subj, name_, bids_dir, track_dir)
     
     frame_nr, mat, times = GetMatrices(time_file, mat_file, mot_file, subj, 

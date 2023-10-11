@@ -65,6 +65,10 @@ def barplot_annotate_brackets(num1, num2, data, center, height, yerr=None, dh=.0
         if len(text) == 0:
             text = 'n. s.'
 
+    print('center: ', center)
+    print('height: ', height)
+    print('num1: ', num1)
+    print('num2: ', num2)
     lx, ly = center[num1], height[num1]
     rx, ry = center[num2], height[num2]
 
@@ -136,6 +140,9 @@ def Show_Stars(p_cor, ind, bars, heights, arange_dh=False, dh=.1, flexible_dh=Fa
     if arange_dh == 'PAPER':
         dhs = np.array([.1, .1, .15, .25, .25, .1, .1, .15, .25, .25])
     fl_dh = .03
+    print('p_cor: ', p_cor)
+    print('len(p_cor): ', len(p_cor))
+    print('ind: ', ind)
     for i in range(0,len(p_cor)):
         nr = ind[i]
         all_nrs.append(nr)

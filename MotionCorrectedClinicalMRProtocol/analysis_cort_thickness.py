@@ -13,11 +13,14 @@ run_long = False
 
 names = []
 for i in range(1,10):
-    names.append('Subject_0'+str(i)+'/')
+    #names.append('Subject_0'+str(i)+'/')
+    names.append('sub-0'+str(i)+'/')
 for i in range(10,20):
-    names.append('Subject_'+str(i)+'/')
+    #names.append('Subject_'+str(i)+'/')
+    names.append('sub-'+str(i)+'/')
 for i in range(20,23):
     names.append('Subject_'+str(i)+'/')
+    names.append('sub-'+str(i)+'/')
     
     
 ''' (1)  Run ReconAll for the motion RR scans in order to compare freesurfer estimates'''
@@ -26,6 +29,7 @@ if run_RR == True:
     for name in names:
         # define directories: 
         nifti_dir = '../BIDSdata_defaced/'+name+'/'
+        nifti_dir =
         
         
             

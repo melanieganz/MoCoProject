@@ -15,16 +15,19 @@ from statistical_tests import PerformWilcoxonMotion
 #out_dir = '../Results/Motion_Estimates/'
 
 out_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/results/Motion_Estimates/'
+# out_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/derivatives/results/Motion_Estimates/'   #Dette burde nok være den rigtige mappestruktur
+
+root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
 
 
 subdir = [] 
 for i in range(1,10):
-    subdir.append('sub_0'+str(i)+'/')
+    subdir.append('sub-0'+str(i)+'/')
 for i in range(10,20):
-    subdir.append('sub_'+str(i)+'/')
+    subdir.append('sub-'+str(i)+'/')
 for i in range(20,23):
-    subdir.append('sub_'+str(i)+'/')
-sequs = ['mprage', 't2tse', 't1tirm', 'flair', 't2star']
+    subdir.append('sub-'+str(i)+'/')
+sequs = ['mprage', 't2tse', 't1tirm', 'flair', 't2star'] #Rettet, bruges til at genkende filer i niftidir, så skulle ændres til BIDS
 #sequs = ['T1_MPR', 'T2_TSE', 'T1_TIRM', 'T2_FLAIR', 'T2STAR', 'DIFF']
 
 
@@ -32,7 +35,7 @@ sequs = ['mprage', 't2tse', 't1tirm', 'flair', 't2star']
 
 save = '_2022_06_02'   
 new_calc = True
-plot = False
+plot = False #Der bliver ikke refereret til denne på noget tidspunkt senere i dette script.
 
 
 ''' (1) Calculate the metrics for each sequence and volunteer: '''
@@ -42,9 +45,10 @@ if new_calc:
         #motion = ['STILL', 'NOD']
         motion = ['run-01', 'run-02']
         #if sequ == 'T1_MPR':
-        if sequ == ['mprage']:
+        if sequ == 'mprage':
             #motion = ['STILL', 'NOD', 'SHAKE']
             motion = ['run-01','run-02','run-03']
+
         
         for mot in motion:
             save_list = []
@@ -58,30 +62,33 @@ if new_calc:
                 #if sequ in ['DIFF', 'T2_FLAIR', 'T2STAR']:
                 # DIFF
                 if sequ in ['flair', 't2star']:
-                    print('inside first if')
-                    #tmp = os.listdir('../BIDSdata_defaced/'+subj+'/') #CHANGE
-                    tmp = os.listdir('../source'+subj+'/')
+                    #tmp = os.listdir('../BIDSdata_defaced/'+subj+'/') #CHANGE to niftidir
+                    tmp = os.listdir(root+subj+'anat/') #niftidir #fixed
+                    tmp_ = ''
                     test = sequ
-                    if sequ == 'DIFF': #CHANGE
-                        test = 'TRACEW_B0' #CHANGE
-                    if test not in tmp_.join(tmp):
+                    #if sequ == 'DIFF': #IGNORED DUE TO DIFF AND TRACEW
+                    #    test = 'TRACEW_B0'
+                    if test not in tmp_.join(tmp): # Spring over hvis vi mangler
                         continue
                 
                 # MoCo On:
-                name = 'MOCO_ON_'+mot+'_*'+sequ+'_'
+                #name = 'MOCO_ON_'+mot+'_*'+sequ+'_'
+                #name = '*'+sequ+'*pmcon'+'*'+ mot +'*' #name is used for finding files which are renamed to follow BIDS.
+                name = sequ + '*pmcon' + '*' + '_' + mot + '_'  # name is used for finding files which are renamed to follow BIDS.
 
                 seq_type = mot+'_'+sequ    
-                if sequ == 'TRACEW_B0':    #Change #Ignore because of DIFF?
-                    seq_type = mot+'_DIFF'
+                #if sequ == 'TRACEW_B0':    #Change #Ignore because of DIFF?
+                #    seq_type = mot+'_DIFF'
                             
                 magn_On, RMS_On, med_disp_On, max_disp_On = CalcMotionMetricsforScan(subj, name, 
-                                                                                     seq_type)
-                
+                                                                                     seq_type)  #CHANGE? Lige nu er svarer subj til sub-xx/ dvs. det svarer til en folder. Tror den er god nok
                 # MoCo Off:
-                name = 'MOCO_OFF_'+mot+'_*'+sequ+'_'
+                #name = 'MOCO_OFF_'+mot+'_*'+sequ+'_'
+                #name = '*' + sequ + '*pmcoff' + '*' + mot + '*'
+                name = sequ + '*pmcoff' + '*' + '_' + mot + '_'  # name is used for finding files which are renamed to follow BIDS.name = sequ + '*pmcon' + '*' + '_' + mot + '_'  # name is used for finding files which are renamed to follow BIDS.
                 seq_type = mot+'_'+sequ    
-                if sequ == 'TRACEW_B0': #Change #Ignore because of DIFF?
-                    seq_type = mot+'_DIFF'
+                #if sequ == 'TRACEW_B0': #Change #Ignore because of DIFF?
+                #    seq_type = mot+'_DIFF'
                 
                 magn_Off, RMS_Off, med_disp_Off, max_disp_Off = CalcMotionMetricsforScan(subj, 
                                                                                          name, 
@@ -115,6 +122,7 @@ for mot in ['run-01', 'run-02', 'run-03']:
         file = glob.glob(out_dir+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
         if len(file)>0:
             file = SortFiles(file)
+
             
         metrics = np.loadtxt(file[0], unpack=True, skiprows=1)
         RMS.append(metrics[0])
@@ -134,18 +142,25 @@ for mot in ['run-01', 'run-02', 'run-03']:
 p_values = np.concatenate(p_values)
 rej, p_values_cor, _, __ = multipletests(p_values, alpha=0.05, method='fdr_bh', is_sorted=False, returnsorted=False)
 
-p_values_cor_still = p_values_cor[0:18]
-p_values_cor_nod = p_values_cor[18:36]
-p_values_cor_shake = p_values_cor[36:]
+#p_values_cor_still = p_values_cor[0:18] #PERHAPS change back. Ændret fra at gå op i 6 til at gå op i 5 da diff er fjernet
+#p_values_cor_nod = p_values_cor[18:36]
+#p_values_cor_shake = p_values_cor[36:]
+p_values_cor_still = p_values_cor[0:15]
+p_values_cor_nod = p_values_cor[15:25]
+p_values_cor_shake = p_values_cor[25:]
+
+
 # check that everything correct!!!
-ind_p = np.array([[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]])
+#ind_p = np.array([[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]])
+ind_p = np.array([[0,1], [2,3], [4,5], [6,7], [8,9]])
 ind_sh = ind = np.array([[0,1]])
 
 
 
 ''' (3) Load the latest data and plot: '''
 
-for mot in ['STILL', 'NOD']:
+#for mot in ['STILL', 'NOD']: #CHANGED
+for mot in ['run-01', 'run-02']:
     RMS, median, maxim, descr = [], [], [], []
     for sequ in sequs:
         # find the most recent data:
@@ -189,6 +204,22 @@ for mot in ['STILL', 'NOD']:
             mean_RMS_s.append(np.mean(RMS_s[i]))
             mean_med_s.append(np.mean(median_s[i]))
             mean_max_s.append(np.mean(maxim_s[i]))
+
+        for i in range(len(descr_s)):
+            # if descr[i]=='TRACEW_B0':
+            #    descr[i]='DWI'
+            if descr_s[i] == 'mprage':
+                descr_s[i] = 'T1_MPR'
+            if descr_s[i] == 'flair':
+                descr_s[i] = 'T2_FLAIR'
+            if descr_s[i] == 't2tse':
+                descr_s[i] = 'T2_TSE'
+            # if descr[i]=='T1_TIRM':
+            if descr_s[i] == 't1tirm':
+                descr_s[i] = 'T1_STIR'
+            # if descr[i]=='T2STAR':
+            if descr_s[i] == 't2star':
+                descr_s[i] = 'T2*'
         
     
     mean_RMS, mean_med, mean_max = [], [], []
@@ -198,30 +229,40 @@ for mot in ['STILL', 'NOD']:
         mean_max.append(np.mean(maxim[i]))
     colors = []
     labels = []
+
     for i in range(int(len(RMS)/2)):
         colors.append('tab:orange')
         colors.append('tab:blue')
         #labels.append('MOCO_OFF')
         #labels.append('MOCO_ON')
-        labels.append('pmcoff')
-        labels.append('pmcon')
+        labels.append('without PMC')
+        labels.append('with PMC')
     small = dict(markersize=3)
         
     
-    # change 'TIRM' into STIR for descr:    
+    # change 'TIRM' into STIR for descr:
     # change 'TRACEW_B0' to 'DWI'
     for i in range(len(descr)):
-        if descr[i]=='TRACEW_B0':
-            descr[i]='DWI'
+        #if descr[i]=='TRACEW_B0':
+        #    descr[i]='DWI'
+        if descr[i]=='mprage':
+            descr[i] = 'T1_MPR'
+        if descr[i] == 'flair':
+            descr[i] = 'T2_FLAIR'
+        if descr[i] == 't2tse':
+            descr[i] = 'T2_TSE'
         #if descr[i]=='T1_TIRM':
         if descr[i]=='t1tirm':
-            descr[i]='T1_STIR' #CHANGE ?
+            descr[i]='T1_STIR'
         #if descr[i]=='T2STAR':
         if descr[i]=='t2star':
-            descr[i]='T2*' #CHANGE?
-    
+            descr[i]='T2*'
+
+
+
     #if mot=='STILL':
     if mot=='run-01':
+        fig_title = 'STILL'
         plt.figure(figsize=(10,10))
         plt.subplot(3,1,1)
     else:
@@ -237,7 +278,9 @@ for mot in ['STILL', 'NOD']:
                 plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
         for y1, y2 in zip(RMS[8], RMS[9]):
                 plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
-    plt.title(mot+' scans', fontsize=17)
+
+
+    plt.title(fig_title +' scans', fontsize=17)
     plt.ylabel('RMS displacement [mm]')
     plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
     lim = plt.gca().get_ylim()
@@ -254,11 +297,14 @@ for mot in ['STILL', 'NOD']:
     max_RMS = [np.amax(RMS[i]) for i in range(len(RMS))]
     #if mot=='STILL':
     if mot=='run-01':
-        Show_Stars(p_values_cor_still[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS)
-        
+        #Show_Stars(p_values_cor_still[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS) # skal [0,6] rettes til [0,5] pga. vi ikke har diff med
+        Show_Stars(p_values_cor_still[0:5], ind_p, np.arange(1, len(RMS) + 1), max_RMS)
+
+
         plt.subplot(3,1,2)
     else:
-        Show_Stars(p_values_cor_nod[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS)
+        #Show_Stars(p_values_cor_nod[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS)
+        Show_Stars(p_values_cor_nod[0:5], ind_p, np.arange(1, len(RMS) + 1), max_RMS)
         
         ax2=plt.subplot2grid((3,5), (1,0), colspan=4)
     
@@ -279,10 +325,12 @@ for mot in ['STILL', 'NOD']:
     max_med = [np.amax(median[i]) for i in range(len(RMS))]
     #if mot=='STILL':
     if mot=='run-01':
-        Show_Stars(p_values_cor_still[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
+        #Show_Stars(p_values_cor_still[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
+        Show_Stars(p_values_cor_still[5:10], ind_p, np.arange(1, len(RMS) + 1), max_med)
         plt.subplot(3,1,3)
     else:
-        Show_Stars(p_values_cor_nod[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
+        #Show_Stars(p_values_cor_nod[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
+        Show_Stars(p_values_cor_nod[5:10], ind_p, np.arange(1, len(RMS) + 1), max_med)
         
         ax3=plt.subplot2grid((3,5), (2,0), colspan=4)
     MakeBoxplot(maxim, colors)
@@ -306,22 +354,27 @@ for mot in ['STILL', 'NOD']:
         low = -3
     
     max_max = [np.amax(maxim[i]) for i in range(len(RMS))]
+
+    print('p_values_cor_still: ', p_values_cor_still)
     #if mot=='STILL':
     if mot=='run-01':
-        Show_Stars(p_values_cor_still[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
+        #Show_Stars(p_values_cor_still[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
+        Show_Stars(p_values_cor_still[10:15], ind_p, np.arange(1, len(RMS) + 1), max_max)
     else:
-        Show_Stars(p_values_cor_nod[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
+        #Show_Stars(p_values_cor_nod[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
+        Show_Stars(p_values_cor_nod[10:15], ind_p, np.arange(1, len(RMS) + 1), max_max)
     
     plt.legend(loc='upper center', ncol = 2, bbox_to_anchor=(0.5, -0.3), fontsize=11)
     
     #if mot == 'NOD':
-    if mot == 'run-01':
+    if mot == 'run-02':
+        fig_title = 'SHAKE' # initially if mot == 'NOD' then title is mot_s = 'SHAKE'
         ax4=plt.subplot2grid((3,5), (0,4))
         ax1.get_shared_y_axes().join(ax1, ax4)
         MakeBoxplot(RMS_s, colors)
         for i in range(len(mean_RMS_s)):
             plt.plot(i+1, mean_RMS_s[i], '.', c=colors[i], ls='')
-        plt.title(mot_s+' scans', fontsize=17)
+        plt.title(fig_title +' scans', fontsize=17)
         plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
         lim = plt.gca().get_ylim()
         plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
