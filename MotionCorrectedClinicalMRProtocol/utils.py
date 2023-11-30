@@ -305,8 +305,11 @@ def DrawLines2(a, b, c, d, metric, lw=0.5, col='gray'):
     counts = {}
     
     for A,B,C,D in zip(a,b,c,d):
+        #print('zip(metric[A], metric[B]) : ', zip(metric[A], metric[B]))
         for y1, y2 in zip(metric[A], metric[B]):
+            print('y1 : ', y1, 'y2 : ', y2)
             key = str(y1)+','+str(y2)
+            #print('counts : ', counts)
             if key in counts:
                 counts[key] += 1
             else:

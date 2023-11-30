@@ -15,7 +15,6 @@ from statistical_tests import PerformWilcoxonMotion
 #out_dir = '../Results/Motion_Estimates/'
 
 out_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/results/Motion_Estimates/'
-# out_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/derivatives/results/Motion_Estimates/'   #Dette burde nok være den rigtige mappestruktur
 
 root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
 
@@ -158,266 +157,266 @@ ind_sh = ind = np.array([[0,1]])
 
 
 ''' (3) Load the latest data and plot: '''
+if plot:
+    #for mot in ['STILL', 'NOD']: #CHANGED
+    for mot in ['run-01', 'run-02']:
+        RMS, median, maxim, descr = [], [], [], []
+        for sequ in sequs:
+            # find the most recent data:
+            file = glob.glob(out_dir+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
+            if len(file)>0:
+                file = SortFiles(file)
 
-#for mot in ['STILL', 'NOD']: #CHANGED
-for mot in ['run-01', 'run-02']:
-    RMS, median, maxim, descr = [], [], [], []
-    for sequ in sequs:
-        # find the most recent data:
-        file = glob.glob(out_dir+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
-        if len(file)>0:
-            file = SortFiles(file)
-            
-        metrics = np.loadtxt(file[0], unpack=True, skiprows=1)
-        RMS.append(metrics[0])
-        RMS.append(metrics[3])
-        median.append(metrics[1])
-        median.append(metrics[4])
-        maxim.append(metrics[2])
-        maxim.append(metrics[5])
-        descr.append(sequ)
-        descr.append(sequ)
-    
-    #if mot == 'NOD':
-    if mot == 'run-02':
-        #mot_s = 'SHAKE'
-        mot_s = 'run-03'
-        RMS_s, median_s, maxim_s, descr_s = [], [], [], []
-        #sequ = 'T1_MPR'
-        sequ = 'mprage'
-        # find the most recent data:
-        file = glob.glob(out_dir+'MotionMetrics_'+mot_s+'/'+sequ+'*.txt')
-        if len(file)>0:
-            file = SortFiles(file)
-            
-        metrics = np.loadtxt(file[0], unpack=True, skiprows=1)
-        RMS_s.append(metrics[0])
-        RMS_s.append(metrics[3])
-        median_s.append(metrics[1])
-        median_s.append(metrics[4])
-        maxim_s.append(metrics[2])
-        maxim_s.append(metrics[5])
-        descr_s.append(sequ)
-        descr_s.append(sequ)
-        mean_RMS_s, mean_med_s, mean_max_s = [], [], []
-        for i in range(len(RMS_s)):
-            mean_RMS_s.append(np.mean(RMS_s[i]))
-            mean_med_s.append(np.mean(median_s[i]))
-            mean_max_s.append(np.mean(maxim_s[i]))
+            metrics = np.loadtxt(file[0], unpack=True, skiprows=1)
+            RMS.append(metrics[0])
+            RMS.append(metrics[3])
+            median.append(metrics[1])
+            median.append(metrics[4])
+            maxim.append(metrics[2])
+            maxim.append(metrics[5])
+            descr.append(sequ)
+            descr.append(sequ)
 
-        for i in range(len(descr_s)):
-            # if descr[i]=='TRACEW_B0':
+        #if mot == 'NOD':
+        if mot == 'run-02':
+            #mot_s = 'SHAKE'
+            mot_s = 'run-03'
+            RMS_s, median_s, maxim_s, descr_s = [], [], [], []
+            #sequ = 'T1_MPR'
+            sequ = 'mprage'
+            # find the most recent data:
+            file = glob.glob(out_dir+'MotionMetrics_'+mot_s+'/'+sequ+'*.txt')
+            if len(file)>0:
+                file = SortFiles(file)
+
+            metrics = np.loadtxt(file[0], unpack=True, skiprows=1)
+            RMS_s.append(metrics[0])
+            RMS_s.append(metrics[3])
+            median_s.append(metrics[1])
+            median_s.append(metrics[4])
+            maxim_s.append(metrics[2])
+            maxim_s.append(metrics[5])
+            descr_s.append(sequ)
+            descr_s.append(sequ)
+            mean_RMS_s, mean_med_s, mean_max_s = [], [], []
+            for i in range(len(RMS_s)):
+                mean_RMS_s.append(np.mean(RMS_s[i]))
+                mean_med_s.append(np.mean(median_s[i]))
+                mean_max_s.append(np.mean(maxim_s[i]))
+
+            for i in range(len(descr_s)):
+                # if descr[i]=='TRACEW_B0':
+                #    descr[i]='DWI'
+                if descr_s[i] == 'mprage':
+                    descr_s[i] = 'T1_MPR'
+                if descr_s[i] == 'flair':
+                    descr_s[i] = 'T2_FLAIR'
+                if descr_s[i] == 't2tse':
+                    descr_s[i] = 'T2_TSE'
+                # if descr[i]=='T1_TIRM':
+                if descr_s[i] == 't1tirm':
+                    descr_s[i] = 'T1_STIR'
+                # if descr[i]=='T2STAR':
+                if descr_s[i] == 't2star':
+                    descr_s[i] = 'T2*'
+
+
+        mean_RMS, mean_med, mean_max = [], [], []
+        for i in range(len(RMS)):
+            mean_RMS.append(np.mean(RMS[i]))
+            mean_med.append(np.mean(median[i]))
+            mean_max.append(np.mean(maxim[i]))
+        colors = []
+        labels = []
+
+        for i in range(int(len(RMS)/2)):
+            colors.append('tab:orange')
+            colors.append('tab:blue')
+            #labels.append('MOCO_OFF')
+            #labels.append('MOCO_ON')
+            labels.append('without PMC')
+            labels.append('with PMC')
+        small = dict(markersize=3)
+
+
+        # change 'TIRM' into STIR for descr:
+        # change 'TRACEW_B0' to 'DWI'
+        for i in range(len(descr)):
+            #if descr[i]=='TRACEW_B0':
             #    descr[i]='DWI'
-            if descr_s[i] == 'mprage':
-                descr_s[i] = 'T1_MPR'
-            if descr_s[i] == 'flair':
-                descr_s[i] = 'T2_FLAIR'
-            if descr_s[i] == 't2tse':
-                descr_s[i] = 'T2_TSE'
-            # if descr[i]=='T1_TIRM':
-            if descr_s[i] == 't1tirm':
-                descr_s[i] = 'T1_STIR'
-            # if descr[i]=='T2STAR':
-            if descr_s[i] == 't2star':
-                descr_s[i] = 'T2*'
-        
-    
-    mean_RMS, mean_med, mean_max = [], [], []
-    for i in range(len(RMS)):
-        mean_RMS.append(np.mean(RMS[i]))
-        mean_med.append(np.mean(median[i]))
-        mean_max.append(np.mean(maxim[i]))
-    colors = []
-    labels = []
-
-    for i in range(int(len(RMS)/2)):
-        colors.append('tab:orange')
-        colors.append('tab:blue')
-        #labels.append('MOCO_OFF')
-        #labels.append('MOCO_ON')
-        labels.append('without PMC')
-        labels.append('with PMC')
-    small = dict(markersize=3)
-        
-    
-    # change 'TIRM' into STIR for descr:
-    # change 'TRACEW_B0' to 'DWI'
-    for i in range(len(descr)):
-        #if descr[i]=='TRACEW_B0':
-        #    descr[i]='DWI'
-        if descr[i]=='mprage':
-            descr[i] = 'T1_MPR'
-        if descr[i] == 'flair':
-            descr[i] = 'T2_FLAIR'
-        if descr[i] == 't2tse':
-            descr[i] = 'T2_TSE'
-        #if descr[i]=='T1_TIRM':
-        if descr[i]=='t1tirm':
-            descr[i]='T1_STIR'
-        #if descr[i]=='T2STAR':
-        if descr[i]=='t2star':
-            descr[i]='T2*'
+            if descr[i]=='mprage':
+                descr[i] = 'T1_MPR'
+            if descr[i] == 'flair':
+                descr[i] = 'T2_FLAIR'
+            if descr[i] == 't2tse':
+                descr[i] = 'T2_TSE'
+            #if descr[i]=='T1_TIRM':
+            if descr[i]=='t1tirm':
+                descr[i]='T1_STIR'
+            #if descr[i]=='T2STAR':
+            if descr[i]=='t2star':
+                descr[i]='T2*'
 
 
 
-    #if mot=='STILL':
-    if mot=='run-01':
-        fig_title = 'STILL'
-        plt.figure(figsize=(10,10))
-        plt.subplot(3,1,1)
-    else:
-        plt.figure(figsize=(13, 11.5))
+        #if mot=='STILL':
+        if mot=='run-01':
+            fig_title = 'STILL'
+            plt.figure(figsize=(10,10))
+            plt.subplot(3,1,1)
+        else:
+            plt.figure(figsize=(13, 11.5))
 
-        ax1=plt.subplot2grid((3,5), (0,0), colspan=4)
-    MakeBoxplot(RMS, colors)
-    for i in range(len(mean_RMS)):
-        plt.plot(i+1, mean_RMS[i], '.', c=colors[i], ls='')
-    #if mot=='STILL':
-    if mot=='run-01':
-        for y1, y2 in zip(RMS[2], RMS[3]):
-                plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
-        for y1, y2 in zip(RMS[8], RMS[9]):
-                plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
-
-
-    plt.title(fig_title +' scans', fontsize=17)
-    plt.ylabel('RMS displacement [mm]')
-    plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
-    lim = plt.gca().get_ylim()
-    plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
-    #if mot=='STILL':
-    if mot=='run-01':
-        use = 0
-        low = -1
-    #if mot == 'NOD':
-    if mot == 'run-02':
-        use = 1
-        low = -4
-    
-    max_RMS = [np.amax(RMS[i]) for i in range(len(RMS))]
-    #if mot=='STILL':
-    if mot=='run-01':
-        #Show_Stars(p_values_cor_still[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS) # skal [0,6] rettes til [0,5] pga. vi ikke har diff med
-        Show_Stars(p_values_cor_still[0:5], ind_p, np.arange(1, len(RMS) + 1), max_RMS)
+            ax1=plt.subplot2grid((3,5), (0,0), colspan=4)
+        MakeBoxplot(RMS, colors)
+        for i in range(len(mean_RMS)):
+            plt.plot(i+1, mean_RMS[i], '.', c=colors[i], ls='')
+        #if mot=='STILL':
+        if mot=='run-01':
+            for y1, y2 in zip(RMS[2], RMS[3]):
+                    plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
+            for y1, y2 in zip(RMS[8], RMS[9]):
+                    plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
 
 
-        plt.subplot(3,1,2)
-    else:
-        #Show_Stars(p_values_cor_nod[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS)
-        Show_Stars(p_values_cor_nod[0:5], ind_p, np.arange(1, len(RMS) + 1), max_RMS)
-        
-        ax2=plt.subplot2grid((3,5), (1,0), colspan=4)
-    
-    MakeBoxplot(median, colors)
-    for i in range(len(mean_RMS)):
-        plt.plot(i+1, mean_med[i], '.', c=colors[i], ls='')
-    #if mot=='STILL':
-    if mot=='run-01':
-        for y1, y2 in zip(median[2], median[3]):
-                plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
-        for y1, y2 in zip(median[8], median[9]):
-                plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
-    plt.ylabel('Median displacement [mm]')
-    plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
-    lim = plt.gca().get_ylim()
-    plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
-    
-    max_med = [np.amax(median[i]) for i in range(len(RMS))]
-    #if mot=='STILL':
-    if mot=='run-01':
-        #Show_Stars(p_values_cor_still[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
-        Show_Stars(p_values_cor_still[5:10], ind_p, np.arange(1, len(RMS) + 1), max_med)
-        plt.subplot(3,1,3)
-    else:
-        #Show_Stars(p_values_cor_nod[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
-        Show_Stars(p_values_cor_nod[5:10], ind_p, np.arange(1, len(RMS) + 1), max_med)
-        
-        ax3=plt.subplot2grid((3,5), (2,0), colspan=4)
-    MakeBoxplot(maxim, colors)
-    for i in range(0,2):
-        plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='', label=labels[i])
-    for i in range(2,len(mean_RMS)):
-        plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='')
-    #if mot=='STILL':
-    if mot=='run-01':
-        for y1, y2 in zip(maxim[2], maxim[3]):
-                plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
-        for y1, y2 in zip(maxim[8], maxim[9]):
-                plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
-    plt.ylabel('Maximum displacement [mm]')
-    plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
-    lim = plt.gca().get_ylim()
-    plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-    #if mot=='STILL':
-    if mot=='run-01':
-        use = 0
-        low = -3
-    
-    max_max = [np.amax(maxim[i]) for i in range(len(RMS))]
-
-    print('p_values_cor_still: ', p_values_cor_still)
-    #if mot=='STILL':
-    if mot=='run-01':
-        #Show_Stars(p_values_cor_still[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
-        Show_Stars(p_values_cor_still[10:15], ind_p, np.arange(1, len(RMS) + 1), max_max)
-    else:
-        #Show_Stars(p_values_cor_nod[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
-        Show_Stars(p_values_cor_nod[10:15], ind_p, np.arange(1, len(RMS) + 1), max_max)
-    
-    plt.legend(loc='upper center', ncol = 2, bbox_to_anchor=(0.5, -0.3), fontsize=11)
-    
-    #if mot == 'NOD':
-    if mot == 'run-02':
-        fig_title = 'SHAKE' # initially if mot == 'NOD' then title is mot_s = 'SHAKE'
-        ax4=plt.subplot2grid((3,5), (0,4))
-        ax1.get_shared_y_axes().join(ax1, ax4)
-        MakeBoxplot(RMS_s, colors)
-        for i in range(len(mean_RMS_s)):
-            plt.plot(i+1, mean_RMS_s[i], '.', c=colors[i], ls='')
         plt.title(fig_title +' scans', fontsize=17)
-        plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
+        plt.ylabel('RMS displacement [mm]')
+        plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
         lim = plt.gca().get_ylim()
-        plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-        max_RMS = [np.amax(RMS_s[i]) for i in range(len(RMS_s))]
-        Show_Stars(np.array([p_values_cor_shake[0]]), ind_sh, np.arange(1, len(RMS)+1), max_RMS)
-        
-        ax5=plt.subplot2grid((3,5), (1,4))
-        ax2.get_shared_y_axes().join(ax2, ax5)
-        MakeBoxplot(median_s, colors)
-        for i in range(len(mean_RMS_s)):
-            plt.plot(i+1, mean_med_s[i], '.', c=colors[i], ls='')
-        plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
+        plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
+        #if mot=='STILL':
+        if mot=='run-01':
+            use = 0
+            low = -1
+        #if mot == 'NOD':
+        if mot == 'run-02':
+            use = 1
+            low = -4
+
+        max_RMS = [np.amax(RMS[i]) for i in range(len(RMS))]
+        #if mot=='STILL':
+        if mot=='run-01':
+            #Show_Stars(p_values_cor_still[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS) # skal [0,6] rettes til [0,5] pga. vi ikke har diff med
+            Show_Stars(p_values_cor_still[0:5], ind_p, np.arange(1, len(RMS) + 1), max_RMS)
+
+
+            plt.subplot(3,1,2)
+        else:
+            #Show_Stars(p_values_cor_nod[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS)
+            Show_Stars(p_values_cor_nod[0:5], ind_p, np.arange(1, len(RMS) + 1), max_RMS)
+
+            ax2=plt.subplot2grid((3,5), (1,0), colspan=4)
+
+        MakeBoxplot(median, colors)
+        for i in range(len(mean_RMS)):
+            plt.plot(i+1, mean_med[i], '.', c=colors[i], ls='')
+        #if mot=='STILL':
+        if mot=='run-01':
+            for y1, y2 in zip(median[2], median[3]):
+                    plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
+            for y1, y2 in zip(median[8], median[9]):
+                    plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
+        plt.ylabel('Median displacement [mm]')
+        plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
         lim = plt.gca().get_ylim()
-        plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-        max_med = [np.amax(median_s[i]) for i in range(len(RMS_s))]
-        Show_Stars(np.array([p_values_cor_shake[1]]), ind_sh, np.arange(1, len(RMS)+1), max_med)
-        
-        ax6=plt.subplot2grid((3,5), (2,4))
-        ax3.get_shared_y_axes().join(ax3, ax6)
-        MakeBoxplot(maxim_s, colors)
+        plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
+
+        max_med = [np.amax(median[i]) for i in range(len(RMS))]
+        #if mot=='STILL':
+        if mot=='run-01':
+            #Show_Stars(p_values_cor_still[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
+            Show_Stars(p_values_cor_still[5:10], ind_p, np.arange(1, len(RMS) + 1), max_med)
+            plt.subplot(3,1,3)
+        else:
+            #Show_Stars(p_values_cor_nod[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
+            Show_Stars(p_values_cor_nod[5:10], ind_p, np.arange(1, len(RMS) + 1), max_med)
+
+            ax3=plt.subplot2grid((3,5), (2,0), colspan=4)
+        MakeBoxplot(maxim, colors)
         for i in range(0,2):
-            plt.plot(i+1, mean_max_s[i], '.', c=colors[i], ls='', label=labels[i])
-        for i in range(2,len(mean_RMS_s)):
-            plt.plot(i+1, mean_max_s[i], '.', c=colors[i], ls='')
-        plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
+            plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='', label=labels[i])
+        for i in range(2,len(mean_RMS)):
+            plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='')
+        #if mot=='STILL':
+        if mot=='run-01':
+            for y1, y2 in zip(maxim[2], maxim[3]):
+                    plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
+            for y1, y2 in zip(maxim[8], maxim[9]):
+                    plt.plot([9,10], [y1, y2], 'gray', lw=0.7)
+        plt.ylabel('Maximum displacement [mm]')
+        plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
         lim = plt.gca().get_ylim()
         plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-        max_max = [np.amax(maxim[i]) for i in range(len(RMS_s))]
-        Show_Stars(np.array([p_values_cor_shake[2]]), ind_sh, np.arange(1, len(RMS)+1), max_max)
-           
-    plt.subplots_adjust(hspace=0.3, wspace=0.4)
-    plt.savefig(out_dir+'Boxplot_'+mot+save, bbox_inches='tight', dpi=200)
-    plt.show()
-    
-    
-    # print statistic over all sequences:
-    print(mot)
-    tmp = np.concatenate(RMS).ravel()
-    print('RMS: ', np.median(tmp), np.std(tmp))
-    tmp = np.concatenate(median).ravel()
-    print('Median: ', np.median(tmp), np.std(tmp))
-    tmp = np.concatenate(maxim).ravel()
-    print('Maximum: ', np.median(tmp), np.std(tmp))
+        #if mot=='STILL':
+        if mot=='run-01':
+            use = 0
+            low = -3
+
+        max_max = [np.amax(maxim[i]) for i in range(len(RMS))]
+
+        print('p_values_cor_still: ', p_values_cor_still)
+        #if mot=='STILL':
+        if mot=='run-01':
+            #Show_Stars(p_values_cor_still[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
+            Show_Stars(p_values_cor_still[10:15], ind_p, np.arange(1, len(RMS) + 1), max_max)
+        else:
+            #Show_Stars(p_values_cor_nod[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
+            Show_Stars(p_values_cor_nod[10:15], ind_p, np.arange(1, len(RMS) + 1), max_max)
+
+        plt.legend(loc='upper center', ncol = 2, bbox_to_anchor=(0.5, -0.3), fontsize=11)
+
+        #if mot == 'NOD':
+        if mot == 'run-02':
+            fig_title = 'SHAKE' # initially if mot == 'NOD' then title is mot_s = 'SHAKE'
+            ax4=plt.subplot2grid((3,5), (0,4))
+            ax1.get_shared_y_axes().join(ax1, ax4)
+            MakeBoxplot(RMS_s, colors)
+            for i in range(len(mean_RMS_s)):
+                plt.plot(i+1, mean_RMS_s[i], '.', c=colors[i], ls='')
+            plt.title(fig_title +' scans', fontsize=17)
+            plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
+            lim = plt.gca().get_ylim()
+            plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
+            max_RMS = [np.amax(RMS_s[i]) for i in range(len(RMS_s))]
+            Show_Stars(np.array([p_values_cor_shake[0]]), ind_sh, np.arange(1, len(RMS)+1), max_RMS)
+
+            ax5=plt.subplot2grid((3,5), (1,4))
+            ax2.get_shared_y_axes().join(ax2, ax5)
+            MakeBoxplot(median_s, colors)
+            for i in range(len(mean_RMS_s)):
+                plt.plot(i+1, mean_med_s[i], '.', c=colors[i], ls='')
+            plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
+            lim = plt.gca().get_ylim()
+            plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
+            max_med = [np.amax(median_s[i]) for i in range(len(RMS_s))]
+            Show_Stars(np.array([p_values_cor_shake[1]]), ind_sh, np.arange(1, len(RMS)+1), max_med)
+
+            ax6=plt.subplot2grid((3,5), (2,4))
+            ax3.get_shared_y_axes().join(ax3, ax6)
+            MakeBoxplot(maxim_s, colors)
+            for i in range(0,2):
+                plt.plot(i+1, mean_max_s[i], '.', c=colors[i], ls='', label=labels[i])
+            for i in range(2,len(mean_RMS_s)):
+                plt.plot(i+1, mean_max_s[i], '.', c=colors[i], ls='')
+            plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
+            lim = plt.gca().get_ylim()
+            plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
+            max_max = [np.amax(maxim[i]) for i in range(len(RMS_s))]
+            Show_Stars(np.array([p_values_cor_shake[2]]), ind_sh, np.arange(1, len(RMS)+1), max_max)
+
+        plt.subplots_adjust(hspace=0.3, wspace=0.4)
+        plt.savefig(out_dir+'Boxplot_'+mot+save, bbox_inches='tight', dpi=200)
+        plt.show()
+
+
+        # print statistic over all sequences:
+        print(mot)
+        tmp = np.concatenate(RMS).ravel()
+        print('RMS: ', np.median(tmp), np.std(tmp))
+        tmp = np.concatenate(median).ravel()
+        print('Median: ', np.median(tmp), np.std(tmp))
+        tmp = np.concatenate(maxim).ravel()
+        print('Maximum: ', np.median(tmp), np.std(tmp))
     
             
             

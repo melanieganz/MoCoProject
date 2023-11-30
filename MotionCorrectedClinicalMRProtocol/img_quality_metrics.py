@@ -162,19 +162,30 @@ def Comp_All_Metrics(all_img, bm_file, ref_file, out_dir, save, tag, normal=True
         test = filename.find('pmcoff')
         if test > 0:
             #descr = 'MOCO_OFF_'
-            descr = 'pmcoff'
+            descr = 'pmcoff_'
         else:
             #test = filename.find('MOCO_ON')
             test = filename.find('pmcon')
             if test > 0:
                 #descr = 'MOCO_ON_'
-                descr = 'pmcon'
+                descr = 'pmcon_'
             else:
                 test = filename.find('MOCO_RETRO_') #SPØRG
                 if test > 0:
                     descr = 'MOCO_RETRO_'
                 else:
                     print('ERROR: Filename ' + filename + ' does not contain MOCO description')
+
+        # test = filename.find('_RR_')
+        test = filename.find('rec-wore')
+        if test > 0:
+            #descr = descr + '_RR'
+            descr = descr + 'rec-wore_'
+
+        test = filename.find('rec-wre')
+        if test > 0:
+            # descr = descr + '_RR'
+            descr = descr + 'rec-wre_'
 
         #test = filename.find('_NOD_')
         test = filename.find('run-02')
@@ -200,14 +211,9 @@ def Comp_All_Metrics(all_img, bm_file, ref_file, out_dir, save, tag, normal=True
                     else:
                         print('EROOR: Filename ' + filename + ' does not contain motion description')
 
-        #test = filename.find('_RR_')
-        test = filename.find('rec-wore')
-        if test > 0:
-            #descr = descr + '_RR'
-            descr = descr + 'rec-wore'
         
         names.append(descr)
-
+    print('names', names)
     names = np.array(names)
     metrics = np.array(metrics)
 

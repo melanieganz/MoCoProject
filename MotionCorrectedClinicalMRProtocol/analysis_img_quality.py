@@ -213,7 +213,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 
 
 # DEBUG - for now only run with one subject
-sub = 'sub-02'
+#sub = 'sub-02'
 
 #Paths should be changed into a loop once we run for all subjects 
 root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
@@ -225,12 +225,12 @@ root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
 #root = '/home/ds004332-download/' #Nyeste openneuro download
 
 
-nifti_dir = root+sub+'/anat/'
-bm_dir = root+'derivatives/freesurfer/'+sub+'/anat/'
-reg_dir = root+'derivatives/freesurfer/'+sub+'/transforms/'
-SUBJECTS_DIR = root +'derivatives/freesurfer/'+sub+'/transforms/'
-outDir = root+'derivatives/results/registrations/'+sub+'/'
-outDirMetrics = root+'derivatives/results/metricsresults/'+sub+'/'
+#nifti_dir = root+sub+'/anat/'
+#bm_dir = root+'derivatives/freesurfer/'+sub+'/anat/'
+#reg_dir = root+'derivatives/freesurfer/'+sub+'/transforms/'
+#SUBJECTS_DIR = root +'derivatives/freesurfer/'+sub+'/transforms/'
+#outDir = root+'derivatives/results/registrations/'+sub+'/'
+#outDirMetrics = root+'derivatives/results/metricsresults/'+sub+'/'
 
 # Original folder structure
 #for sub in subjs:
@@ -260,7 +260,7 @@ metrics = True
 show_bm_reg = False
 
 #Run the function
-FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
+#FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
 
 
 
@@ -268,7 +268,7 @@ FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetric
 
 #Run on all subjects:
 
-"""subjs = []
+subjs = []
 for i in range(1,10):
     subjs.append('sub-0'+str(i))
 for i in range(10,20):
@@ -277,7 +277,7 @@ for i in range(20,23):
     subjs.append('sub-'+str(i))
 
 
-for sub in subjs:
+for sub in subjs: #Ret dette tilbage- Pycharm lukkede før den kørte færdig
     print('Initiating FullAnalysis for', sub)
     root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
 #
@@ -285,11 +285,12 @@ for sub in subjs:
     bm_dir = root + 'derivatives/freesurfer/' + sub + '/anat/'
     reg_dir = root + 'derivatives/freesurfer/' + sub + '/transforms/'
     SUBJECTS_DIR = root + 'derivatives/freesurfer/' + sub + '/transforms/'
-    outDir = root + 'derivatives/results/registrations/' + sub + '/'
-    outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
+    outDir = root + 'results/registrations/' + sub + '/'
+    #outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
+    outDirMetrics = root + 'results/metricsresults/' + sub + '/'
 
 
     FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
-    print('Finalized FullAnalysis for', sub)"""
+    print('Finalized FullAnalysis for', sub)
 
 
