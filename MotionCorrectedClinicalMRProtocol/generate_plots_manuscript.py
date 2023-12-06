@@ -475,33 +475,37 @@ for sequ in sequs:
             
             # do the same for quality scores:
             #if sequ not in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
-            #if sequ not in ['t2star']:
-            #    file = glob.glob(in_dir_qs+sequ+' Score.txt')
-            #    if len(file)>0:
-            #        # get the most recent file:
-            #        file = SortFiles(file)
-            #        print(file[0])
+            if sequ not in ['t2star']:
+                file = glob.glob(in_dir_qs+sequ+' Score.txt')
+                #print('file for qs: ', file)
+                if len(file)>0:
+                    # get the most recent file:
+                    file = SortFiles(file)
+                    print(file[0])
                     
-            #        subj_names = np.loadtxt(file[0], unpack=True, dtype=str, usecols=0,
-            #                                skiprows=1)
-            #        tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, usecols=1,
-            #                                skiprows=1)
-            #        tmp2, tmp3, tmp4 = np.loadtxt(file[0], unpack=True, usecols=(2,3,4),
-            #                                      skiprows=1)
+                    subj_names = np.loadtxt(file[0], unpack=True, dtype=str, usecols=0,
+                                            skiprows=1)
+                    tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, usecols=1,
+                                            skiprows=1)
+                    #print('tmp1, file', tmp1, file)
+                    tmp2, tmp3, tmp4 = np.loadtxt(file[0], unpack=True, usecols=(2,3,4),
+                                                  skiprows=1)
                     
-            #        tmp1 = tmp1[subj_names==sub[:-1]]
-            #        tmp2 = tmp2[subj_names==sub[:-1]]
-            #        tmp3 = tmp3[subj_names==sub[:-1]]
-            #        tmp4 = tmp4[subj_names==sub[:-1]]
-                    
+                    tmp1 = tmp1[subj_names==sub[:-1]]
+                    tmp2 = tmp2[subj_names==sub[:-1]]
+                    tmp3 = tmp3[subj_names==sub[:-1]]
+                    tmp4 = tmp4[subj_names==sub[:-1]]
+
+                    print('tmp1, tmp2, tmp3, tmp4 : ', tmp1, tmp2, tmp3, tmp4)
                 
-            #        incl = []
-            #        for na,q1,q2,q3 in zip(tmp1, tmp2, tmp3, tmp4):
-            #            if 'RETRO' not in na:
-            #                ind = np.where(names==na[:-1])[0][0]
-            #                # average the scores of the three raters with double weight for the radiologist
-            #                qs[i,ind] = (q1+q2+2*q3)/4
-            #                incl.append(ind)
+                    incl = []
+                    for na,q1,q2,q3 in zip(tmp1, tmp2, tmp3, tmp4):
+                        if 'RETRO' not in na:
+                            #ind = np.where(names==na[:-1])[0][0] #Jeg går ud fra at hun vil koordinaterne til hvor names er det samme som na
+                            ind = np.where(names == na)[0][0]
+                            # average the scores of the three raters with double weight for the radiologist
+                            qs[i,ind] = (q1+q2+2*q3)/4
+                            incl.append(ind)
                     
                 
                             
@@ -531,8 +535,8 @@ for sequ in sequs:
             #                ind = np.where(names==na)[0][0]
             #                qs[i,ind] = q
             #                incl.append(ind)
-            #else:
-            #    qs = np.zeros_like(ssim)
+            else:
+                qs = np.zeros_like(ssim)
             i+=1
     print('after sub loop')
     print('subject and sequ: ', sub, sequ)
@@ -728,13 +732,14 @@ for sequ in sequs:
 
 ''' (3) Plot image quality metrics for still scans: '''
 if plot_still:
-    metrics = [tgs, qss, np.array([qss[-1]])]
-    print('metrics : ', metrics)
-    print('tgs : ', tgs)
-    print('len tgs : ', len(tgs))
-    print('list shape : ', np.shape(tgs[4]))
-    print('qss : ', qss)
-    p_values = [p_tgs, p_qss[0:4], np.array([p_qss[-1]])]
+    #metrics = [tgs, qss, np.array([qss[-1]])]
+    metrics = [tgs, qss[:-1], np.array([qss[-1]])]
+    #print('qss[:-1] : ', qss[:-1])
+    #print('len(qss[:-1])', len(qss[:-1]))
+    #print('len(tgs)', len(tgs))
+    #print('len(qss)', len(qss))
+    #p_values = [p_tgs, p_qss[0:4], np.array([p_qss[-1]])]
+    p_values = [p_tgs, p_qss[:-1], np.array([p_qss[-1]])]
     labels = ['Tenengrad', 'Observer Scores', 'Quality Rank']
     colors = ['tab:orange', 'tab:blue', 'tab:orange', 'tab:blue', 'tab:orange', 
               'tab:blue', 'tab:orange', 'tab:blue', 'tab:orange', 'tab:blue', 
@@ -754,12 +759,13 @@ if plot_still:
     
     num = 0
     plt.figure(figsize=(10,9))
-    for i, metric, p, lab in zip(range(0,3), metrics, p_values, labels):
+    #for i, metric, p, lab in zip(range(0,3), metrics, p_values, labels): #range(0,3) da der er tre plots: a) tenengrad, b) observer scores, c)quality rank for dwi, men vi har ikke dwi
+    for i, metric, p, lab in zip(range(0,2), metrics, p_values, labels):
         m_still = []
         means = []
         for m in metric:
             if len(m)>0:
-                m_still.append(m[:,0])
+                m_still.append(m[:,0]) # m svarer til
                 m_still.append(m[:,1])
                 means.append(np.nanmean(m[:,0]))
                 means.append(np.nanmean(m[:,1]))
@@ -768,8 +774,9 @@ if plot_still:
             p_still.append(pval[0])
 
         print(sequ)
+        print(sub)
         print('m_still len', len(m_still))
-        print('m_still before plot', m_still)
+        print('m_still before plot', m_still) #den sidste m_still er tom da den scaewe til DW
 
         #plot panel A fig 4
         if i == 0:
@@ -783,56 +790,63 @@ if plot_still:
             ticks = [1.5, 3.5, 5.5, 7.5, 9.5]
             plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
 
-        plt.show()
-        # Plot panel B fig 4
-        #elif i == 1:
-        #    ax = plt.subplot2grid((2,6), (1,0), colspan=4)
-        #    box1 = plt.boxplot(m_still[0:8], flierprops=small)
-        #    for j in range(len(means)-2):
-        #        plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
-        #    for j in range(0,2):
-        #        plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.',
-        #                     capsize=3, label=fig_labels[j])
-        #    ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR']
-        #    ticks = [1.5, 3.5, 5.5, 7.5]
-
-        #    plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
         #plt.show()
-        #else:
-        #    ax = plt.subplot2grid((2,6), (1,5), colspan=1)
-        #    box1 = plt.boxplot(m_still, flierprops=small)
-        #    for j in range(len(means)):
-        #        plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
-        #    ticklabels = ['DWI']
-        #    ticks = [1.5]
-        #    plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
-        #    plt.yticks([2,3,4])
+
+        # Plot panel B fig 4
+        elif i == 1:
+            ax = plt.subplot2grid((2,6), (1,0), colspan=4)
+            box1 = plt.boxplot(m_still[0:8], flierprops=small)
+            for j in range(len(means)-2):
+                plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
+            for j in range(0,2):
+                plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.',
+                             capsize=3, label=fig_labels[j])
+            ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR']
+            ticks = [1.5, 3.5, 5.5, 7.5]
+
+
+            plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
+        #plt.show()
+        else:
+            ax = plt.subplot2grid((2,6), (1,5), colspan=1)
+            box1 = plt.boxplot(m_still, flierprops=small)
+            for j in range(len(means)):
+                plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
+            ticklabels = ['DWI']
+            ticks = [1.5]
+            plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
+            plt.yticks([2,3,4])
         
-        #for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors):
-        #    patch.set(color=color, lw=1.7)
-        #    patch2.set(color='k', lw=1.7)
+        for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors):
+            patch.set(color=color, lw=1.7)
+            patch2.set(color='k', lw=1.7)
            
-        #plt.ylabel(lab, fontsize=15)
-        #if show_stat_test == True:
-        #    maxi = []
-        #    for v in m_still:
-        #        maxi.append(np.amax(v))
-        #    if i == 0:
-        #        indices = [[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]]
-        #        Show_Stars(np.array(p_still), indices[0:len(p_still)], x, maxi,
-        #                   col='black')
-        #    elif i ==1:
-        #        indices = [[0,1], [2,3], [4,5], [6,7]]
-        #        Show_Stars(np.array(p_still), indices[0:len(p_still)], x[0:8], maxi[0:8],
-        #                   col='black')
-        #    else:
-        #        indices = [[0,1]]
-        #        Show_Stars(np.array(p_still), indices[0:len(p_still)], x, maxi,
-        #                   col='black')
-        #    lim = plt.gca().get_ylim()
-        #    plt.ylim(lim[0],(lim[1]-lim[0])*1.05+lim[0])
-        #DrawLines2(a[0:len(p_still)],b[0:len(p_still)],c[0:len(p_still)],
-        #           d[0:len(p_still)],m_still, lw=0.7, col='darkslategray')
+        plt.ylabel(lab, fontsize=15)
+
+        if show_stat_test == True:
+            maxi = []
+            for v in m_still:
+                maxi.append(np.amax(v))
+            if i == 0:
+                #indices = [[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]] #diff mangler
+                indices = [[0,1], [2,3], [4,5], [6,7], [8,9]]
+                Show_Stars(np.array(p_still), indices[0:len(p_still)], x, maxi,
+                           col='black')
+            elif i ==1:
+                indices = [[0,1], [2,3], [4,5], [6,7]]
+                Show_Stars(np.array(p_still), indices[0:len(p_still)], x[0:8], maxi[0:8],
+                           col='black')
+            #else:  #dette er DWI
+            #    indices = [[0,1]]
+            #    Show_Stars(np.array(p_still), indices[0:len(p_still)], x, maxi,
+            #               col='black')
+            lim = plt.gca().get_ylim()
+            plt.ylim(lim[0],(lim[1]-lim[0])*1.05+lim[0])
+        print('len(a) : ', len(a))
+        print('len(p_still) : ', len(p_still))
+        print('len(m_still) : ', len(m_still))
+        DrawLines2(a[0:len(p_still)],b[0:len(p_still)],c[0:len(p_still)],
+                   d[0:len(p_still)],m_still, lw=0.7, col='darkslategray')
         
         if i == 2:
             ax.text(-0.6, 0.95, string.ascii_lowercase[num], 
@@ -852,6 +866,7 @@ if plot_still:
                                 bbox_to_anchor=(0.4, -0.3), fontsize=14, 
                                 frameon=True)
             plt.yticks(ticks=[2.5, 3, 3.5, 4, 4.5, 5])
+            #plt.ylim((2.5,5.5))
 
         
     legend.get_frame().set_linewidth(2)           
@@ -862,7 +877,7 @@ if plot_still:
                 bbox_inches='tight', dpi=200)
     plt.show()
 
-
+print('after plotting')
 
 ''' (4) Plot image quality metrics for nodding scans: '''
 if plot_nod:
