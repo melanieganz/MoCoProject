@@ -107,6 +107,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
     #        brainmask = bm_dir + '/mri/brainmask_edit.mgz'
     #    else:
     #        brainmask = bm_dir + '/mri/brainmask.mgz'
+
             
         # if you start from scratch and do not want to use the registration 
         # transforms we provide, the following function needs to be changed

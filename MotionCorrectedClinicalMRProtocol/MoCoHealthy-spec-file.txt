@@ -144,3 +144,12 @@ https://conda.anaconda.org/conda-forge/noarch/nibabel-3.2.2-pyhd8ed1ab_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/pandas-1.4.2-py310h295c915_0.conda
 https://repo.anaconda.com/pkgs/main/linux-64/scikit-image-0.19.2-py310h00e6091_0.conda
 https://repo.anaconda.com/pkgs/main/linux-64/statsmodels-0.13.2-py310h7f8727e_0.conda
+
+numpy~=1.24.3
+matplotlib~=3.7.1
+scikit-image~=0.20.0
+scipy~=1.9.1
+nibabel~=5.1.0
+pydicom~=2.4.3
+transforms3d~=0.4.1
+statsmodels~=0.14.0

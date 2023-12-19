@@ -54,6 +54,11 @@ plot_nod = False
 plot_DWI = False #Først når diff er klar
 calc_ADC_hist = False #Først når diff er klar
 
+
+# Own attempt of Boxplot
+
+
+
 ''' (1) Plot motion data: '''
 if plot_motion:
     
@@ -108,7 +113,7 @@ if plot_motion:
     #p_values_cor_still = p_values_cor[0:15] # trækker 3 fra 18, da der før var
     #p_values_cor_nod = p_values_cor[15:30]
     #p_values_cor_shake = p_values_cor[30:]
-    p_values_cor_still = p_values_cor[0: 3*len(sequs)]
+    p_values_cor_still = p_values_cor[0: 3*len(sequs)]   #Kan dette være forkert? Vi har rettet da dif mangler
     p_values_cor_nod = p_values_cor[3*len(sequs): 6*len(sequs)]
     p_values_cor_shake = p_values_cor[6*len(sequs):]
     print('3*len(sequ)', 3*len(sequs))
@@ -355,7 +360,9 @@ if plot_motion:
                        np.arange(1, len(RMS)+1), max_max, col='black')
 
     legend.get_frame().set_linewidth(2)
-    plt.subplots_adjust(hspace=0.4, wspace=0.4)
+    plt.subplots_adjust(hspace=0.4, wspace=0.4) #oprindelig
+    #plt.subplots_adjust(hspace = 0.12, wspace = 0.8)
+    #plt.tight_layout()
     plt.savefig(out_dir+'Boxplot_motion_'+save+'.tiff', format='tiff', 
                 bbox_inches='tight', dpi=200)
     plt.savefig(out_dir+'Boxplot_motion_'+save+'.png', format='png', 
@@ -374,11 +381,14 @@ show_stat_test = True
 #sequs = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_TIRM', 'T2STAR', 'TRACEW_B1000']
 sequs = ['mprage', 'flair', 't2tse', 't1tirm', 't2star']
 
+
+
 ssims, psnrs, tgs, qss, names_tes = [], [], [], [], []
 p_ssims, p_psnrs, p_tgs, p_qss, ind_ps = [], [], [], [], []
 for sequ in sequs:
-    n = len(subdir) # subdir er mapperne til alle patienterne. dvs. len(subdir) er 22. Dette passer dog ikke til fx. t2star da det kun er 19 patienter der modtog denne scanning.
-    print(sequ, 'tjek af n : ', n)
+    print('inside if : ', sequ)
+    n = len(subdir) # subdir er mapperne til alle patienterne. dvs. len(subdir) er 22. Dette passer dog ikke til fx. t2star da det kun er 19 patienter der modtog denne scanning. Der er også kun 10 der har fået flair
+    #print(sequ, 'tjek af n : ', n)
     #if sequ == 'T1_MPR':
     if sequ == 'mprage':
         m = 10
@@ -386,14 +396,14 @@ for sequ in sequs:
         #                  'MOCO_ON_NOD_RR', 'MOCO_ON_NOD', 'MOCO_OFF_STILL',
         #                  'MOCO_OFF_SHAKE_RR', 'MOCO_OFF_SHAKE',
         #                  'MOCO_OFF_NOD_RR', 'MOCO_OFF_NOD'])
-        names = np.array(['pmcon_rec-wore_run-01', 'pmcon_rec-wore_run-03', 'pmcon_rec-wre_run-03',  #STILL er alle RR, det er blot implied, selvom der ikke direkte står RR  den oprindelige navngivning
+        names = np.array(['pmcon_rec-wore_run-01', 'pmcon_rec-wore_run-03', 'pmcon_rec-wre_run-03',  #STILL er alle RR/wore, det er blot implied, selvom der ikke direkte står RR  den oprindelige navngivning
                           'pmcon_rec-wore_run-02', 'pmcon_rec-wre_run-02', 'pmcoff_rec-wore_run-01',
                           'pmcoff_rec-wore_run-03', 'pmcoff_rec-wre_run-03',
                           'pmcoff_rec-wore_run-02', 'pmcoff_rec-wre_run-02'])
     elif sequ == 't2star':
         m = 4
         n = 19 #forsøg på at få det rigtig da t2star kun har 19 patienter
-        #names = np.array(['MOCO_ON_STILL', 'MOCO_ON_NOD_RR', 'MOCO_ON_NOD',
+        #names = np.array(['MOCO_ON_STILL', 'MOCO_ON_NOD_RR', 'MOCO_ON_NOD',RR
         #                  'MOCO_OFF_STILL', 'MOCO_OFF_NOD_RR', 'MOCO_OFF_NOD'])
         names = np.array(['pmcon_rec-wore_run-01', 'pmcon_rec-wore_run-02',
                           'pmcoff_rec-wore_run-01', 'pmcoff_rec-wore_run-02'])
@@ -409,8 +419,8 @@ for sequ in sequs:
         #                  'MOCO_OFF_STILL', 'MOCO_OFF_NOD_RR', 'MOCO_OFF_NOD'])
         names = np.array(['pmcon_rec-wore_run-01', 'pmcon_rec-wore_run-02', 'pmcon_rec-wre_run-02',
                           'pmcoff_rec-wore_run-01', 'pmcoff_rec-wore_run-02', 'pmcoff_rec-wre_run-02'])
-    print('names : ', names)
-    ssim, psnr, tg_, qs = np.zeros((n,m)), np.zeros((n,m)), np.zeros((n,m)),  np.zeros((n,m)) # n er 22 for alle. Dette passer dog ikke til t2star da der kun er 19 patienter.
+
+    ssim, psnr, tg_, qs = np.zeros((n,m)), np.zeros((n,m)), np.zeros((n,m)),  np.zeros((n,m)) # n var oprindelig 22 for alle. Dette er dog rettet til 19 for t2star og 10 for flair da det kun er det antal patineter der har modtaget den scannning
     print('sequ : ', sequ, 'ssim shape : ',np.shape(ssim), 'psnr shape : ',np.shape(psnr), 'tg_ shape : ',np.shape(tg_), 'qs shape : ',np.shape(qs)) #her kommer der ikke noget for mprage
     i=0
     print('Files used for calculation:')
@@ -419,8 +429,10 @@ for sequ in sequs:
         # skip all volunteers where the following sequences were not acquired
         #if sequ in ['ADC', 'TRACEW_B0', 'TRACEW_B1000', 'T2_FLAIR', 'T2STAR']: #ADC, TRACEW_B0 og TRACEW_B1000 hører alle til DIFF
         if sequ in ['flair', 't2star']:
-            tmp = os.listdir(in_dir_met+sub)
+            tmp = os.listdir(in_dir_met + sub)
+            print('tmp : ', tmp)
             tmp_ = ''
+            print('tmp_ : ', tmp_)
             if sequ not in tmp_.join(tmp):
                 continue
 
@@ -453,14 +465,14 @@ for sequ in sequs:
             for na,s,p,t in zip(tmp1, tmp2, tmp3, tmp4):
                 #print('na : ', na)
                 #print(' sequ and t  (tmp4): ', sequ, t) #seem normal
-                #if sequ in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
+                #if sequ in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:  #overflødigt da 'wore' allerede er en del af navnet
                 #if sequ in ['t2star']:
-                    #if 'NOD' in na:
-                #    if 'run-02' in na:
-                #        print('na : ', na)
+                 #   if 'NOD' in na:
+                 #   if 'run-02' in na:
+                 #       print('na : ', na)
                         #na = na+'_RR'
-                #        na = na + 'wore'
-                #        print('na efter : ', na)
+                 #       na = na + 'wore'
+                 #       print('na efter : ', na)
 
 
                 #print('where names = na', np.where(names == na))
@@ -729,7 +741,6 @@ for sequ in sequs:
     ind_ps.append(ind_p)
 
 
-
 ''' (3) Plot image quality metrics for still scans: '''
 if plot_still:
     #metrics = [tgs, qss, np.array([qss[-1]])]
@@ -756,16 +767,24 @@ if plot_still:
     #b = [1,3,5,7,9]
     #c = [1,3,5,7,9]
     #d = [2,4,6,8,10]
-    
+
+    print('tgs : ', tgs)
+    print('metrics[0] : ', metrics[0])
+
+
     num = 0
     plt.figure(figsize=(10,9))
     #for i, metric, p, lab in zip(range(0,3), metrics, p_values, labels): #range(0,3) da der er tre plots: a) tenengrad, b) observer scores, c)quality rank for dwi, men vi har ikke dwi
     for i, metric, p, lab in zip(range(0,2), metrics, p_values, labels):
+        print('i , lab : ',i, lab)
+        print('len(metric) : ', len(metric)) #metric bør være 5 når i == 0 og 4 når i == 1 da det svarer til hhv. tenengrad og observer scores
         m_still = []
         means = []
         for m in metric:
+            print('i and m : ', i, m)
             if len(m)>0:
-                m_still.append(m[:,0]) # m svarer til
+                m_still.append(m[:,0])
+                print('m[:,0] : ', m[:,0])
                 m_still.append(m[:,1])
                 means.append(np.nanmean(m[:,0]))
                 means.append(np.nanmean(m[:,1]))
@@ -785,7 +804,7 @@ if plot_still:
             for j in range(len(means)):
                 plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
             #ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*', 'TRACEW']
-            ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*'] # Still want the same names, but without diff (tracew)
+            ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*']
             #ticks = [1.5, 3.5, 5.5, 7.5, 9.5, 11.5] #placement of ticks. One too many due to missing DIFF
             ticks = [1.5, 3.5, 5.5, 7.5, 9.5]
             plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
@@ -793,6 +812,16 @@ if plot_still:
         #plt.show()
 
         # Plot panel B fig 4
+
+        #prøver kun at plotte observer scores
+        #if i == 1:
+        #    plt.figure(5)
+        #    plt.boxplot(m_still[0:8])
+        #    plt.title('own attempt')
+        #    ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR']
+        #    plt.show()
+
+
         elif i == 1:
             ax = plt.subplot2grid((2,6), (1,0), colspan=4)
             box1 = plt.boxplot(m_still[0:8], flierprops=small)
@@ -807,20 +836,20 @@ if plot_still:
 
             plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
         #plt.show()
-        else:
-            ax = plt.subplot2grid((2,6), (1,5), colspan=1)
-            box1 = plt.boxplot(m_still, flierprops=small)
-            for j in range(len(means)):
-                plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
-            ticklabels = ['DWI']
-            ticks = [1.5]
-            plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
-            plt.yticks([2,3,4])
-        
+        #else: #DWI
+        #    ax = plt.subplot2grid((2,6), (1,5), colspan=1)
+        #    box1 = plt.boxplot(m_still, flierprops=small)save = '_2022_05_27'
+        #    for j in range(len(means)):
+        #        plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
+        #    ticklabels = ['DWI']
+        #    ticks = [1.5]
+        #    plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
+        #    plt.yticks([2,3,4])
+
         for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors):
             patch.set(color=color, lw=1.7)
             patch2.set(color='k', lw=1.7)
-           
+
         plt.ylabel(lab, fontsize=15)
 
         if show_stat_test == True:
@@ -842,38 +871,39 @@ if plot_still:
             #               col='black')
             lim = plt.gca().get_ylim()
             plt.ylim(lim[0],(lim[1]-lim[0])*1.05+lim[0])
+            #plt.ylim(0.6, 1.6)
         print('len(a) : ', len(a))
         print('len(p_still) : ', len(p_still))
         print('len(m_still) : ', len(m_still))
         DrawLines2(a[0:len(p_still)],b[0:len(p_still)],c[0:len(p_still)],
                    d[0:len(p_still)],m_still, lw=0.7, col='darkslategray')
-        
+
         if i == 2:
-            ax.text(-0.6, 0.95, string.ascii_lowercase[num], 
+            ax.text(-0.6, 0.95, string.ascii_lowercase[num],
                     transform=ax.transAxes, size=24, weight='bold')
         else:
-            ax.text(-0.1, 0.95, string.ascii_lowercase[num], 
+            ax.text(-0.1, 0.95, string.ascii_lowercase[num],
                     transform=ax.transAxes, size=24, weight='bold')
         num += 1
-       
+
         plt.yticks(fontsize=13)
         plt.tick_params('both', length=0)
         plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
         if i == 0:
             xlim = plt.gca().get_xlim()
         if i == 1:
-            legend =  plt.legend( loc='lower left', ncol=2, 
-                                bbox_to_anchor=(0.4, -0.3), fontsize=14, 
+            legend =  plt.legend( loc='lower left', ncol=2,
+                                bbox_to_anchor=(0.4, -0.3), fontsize=14,
                                 frameon=True)
             plt.yticks(ticks=[2.5, 3, 3.5, 4, 4.5, 5])
             #plt.ylim((2.5,5.5))
 
-        
-    legend.get_frame().set_linewidth(2)           
+    plt.tight_layout()
+    legend.get_frame().set_linewidth(2)
     plt.subplots_adjust(hspace=0.2, wspace=0.3)
-    plt.savefig(out_dir+'Metrics_still'+save+'.tiff', format='tiff', 
+    plt.savefig(out_dir+'Metrics_still'+save+'.tiff', format='tiff',
                 bbox_inches='tight', dpi=200)
-    plt.savefig(out_dir+'Metrics_still'+save+'.png', format='png', 
+    plt.savefig(out_dir+'Metrics_still'+save+'.png', format='png',
                 bbox_inches='tight', dpi=200)
     plt.show()
 
