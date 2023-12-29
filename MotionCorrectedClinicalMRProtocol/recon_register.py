@@ -117,7 +117,6 @@ def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
     # output: *tag*_moved.nii
 
 
-    #for tag in ['T1_MPR_', 'T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
     for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
         if len(glob.glob(niftiDir+'*'+tag + "*pmcoff*"+"*run-01*"+"*.nii"))>0:
             targImg = glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01*"+"*.nii")[0]
@@ -147,7 +146,6 @@ def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
         subprocess.run('mri_binarize --i ' + brainmask + ' --o ' + brainmask_bin_nii + ' --match 0 --inv', shell=True)
 
         # transform brainmask into still/MoCo_off domain of remaining scans:
-        #for tag in ['T2_TSE_', 'T1_TIRM_', 'T2_FLAIR', 'T2STAR', 'EPI_SWI', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
         for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
             #if len(glob.glob(niftiDir+"*MOCO_OFF_STILL_*"+tag+"*.nii"))>0:
             if len(glob.glob(niftiDir+'*'+tag+"*pmcoff*"+"*run-01"+"*.nii"))>0:
@@ -175,10 +173,8 @@ def Run_Long_Stream(name):
     # Run base recon all to create whithin-subject template:
     #  MoCo OFF scans
     tp = '-tp '+name # MoCo OFF Still has different name
-    #for mov in ['NOD_RR_', 'SHAKE_RR_']:
     for mov in ['rec-wore_run-02', 'rec-wore_run-03']:
         tp += ' -tp '+'X_OFF_'+ mov+name
-    #for mov in ['STILL_', 'NOD_RR_', 'SHAKE_RR_']:
     for mov in ['run-01', 'rec-wore_run-02', 'rec-wore_run-03']:
         tp += ' -tp '+'X_ON_'+ mov+name
 

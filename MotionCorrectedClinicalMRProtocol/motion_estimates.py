@@ -10,14 +10,14 @@ from transforms3d.euler import mat2euler
 
 
 # define scan times for different sequences:
-ScanTimes = {'STILL_T1_MPR':np.array([4,40]), 'NOD_T1_MPR':np.array([5,12]),       #Ved ikke hvornår der refereres til ScanTimes
+ScanTimes = {'STILL_T1_MPR':np.array([4,40]), 'NOD_T1_MPR':np.array([5,12]),
              'SHAKE_T1_MPR':np.array([5,12]), 'STILL_T1_TIRM':np.array([3,10]), 
              'NOD_T1_TIRM':np.array([3,51]), 'STILL_T2_TSE':np.array([2,30]), 
              'NOD_T2_TSE':np.array([3,6]),
              'STILL_T2_FLAIR':np.array([4,12]), 'NOD_T2_FLAIR':np.array([4,47]),
              'STILL_T2STAR':np.array([2,25]), 'NOD_T2STAR':np.array([2,25]),
              'STILL_EPI_SWI':np.array([0,52]), 'NOD_EPI_SWI':np.array([0,52])}
-             #'STILL_DIFF':np.array([0,42]), 'NOD_DIFF':np.array([0,42])} #ignore
+             #'STILL_DIFF':np.array([0,42]), 'NOD_DIFF':np.array([0,42])} # DIFF
 
 
 root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
@@ -181,10 +181,8 @@ def FindALN(subj, name, bids_dir=None, track_dir=None):
 
     print(subj)
     if bids_dir is None:
-        #bids_dir = '../BIDSdata_defaced/'+subj  #niftidir skal ændres
         bids_dir = root + subj + 'anat/'
     if track_dir is None:
-        #track_dir = '../TCLData/'+subj #source skal ændres
         track_dir = root + 'source/' + subj + 'TCLdata/'
 
 
@@ -246,16 +244,13 @@ def FindPOA_TIM(subj, name, bids_dir=None, track_dir=None):
 
 
     if bids_dir is None:
-        #bids_dir = '../BIDSdata_defaced/'+subj
         bids_dir = root+subj+'anat/'
     if track_dir is None:
-        #track_dir = '../TCLData/'+subj
         track_dir = root + 'source/'+subj+'/TCLdata/'
 
 
 
-    all_tim = glob.glob(track_dir+'*TIM.tst')  # VIL IKKE GENKENDE
-    #all_tim = glob.glob('/home/melanie/FromOpenNeuro/renamed_ds004332-download/source/sub-01/TCLData/vEbGqOHjTn_134650_TIM.tst')
+    all_tim = glob.glob(track_dir+'*TIM.tst')
     file = glob.glob(bids_dir+'*'+name+'*.json')[0]
     acqu_time_j = GetAcquFromJSON(file)
     acqu_time = float(acqu_time_j[0:2]+acqu_time_j[3:5]+acqu_time_j[6:])
@@ -308,8 +303,7 @@ def GetTimeFromTCL(mot, name, subj=None, track_dir=None):
     '''
     
     if track_dir is None:
-        #track_dir = '../BIDSdata_defaced/'+subj
-        track_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'+subj+'anat/'
+        track_dir = '../BIDSdata_defaced/'+subj + 'anat/'
     
     find = int(search_string_in_file(mot, 'Label Position')[0][0])
     
@@ -373,8 +367,7 @@ def GetTimeFromTxt(sub, name):
     #find the file with the corresponding scan scart:
     sequ = name.split('*')[0]
 
-    #file = '../TCLData/ScanEndTimes_'+sequ+'07_30.txt'
-    file = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/source/ScanEndTimes_' + sequ + '_07_30.txt'
+    file = '../TCLData/ScanEndTimes_'+sequ+'07_30.txt'
 
 
     # search for sub and name:
@@ -430,10 +423,9 @@ def FindFrameNr(tim, subj, name, seq_type, mot, bids_dir=None, track_dir=None):
     '''
     
     if bids_dir is None:
-        #bids_dir = '../BIDSdata_defaced/'+subj
         bids_dir = root + subj + 'anat/'
     
-    file = glob.glob(bids_dir+'*'+name+'*.json')[0]  #Den kigger efter en fil der er navngivet på formen 'MOCO_ON_run-XX_mprage_ .... Disse json-filer er navngivet efter BIDS.
+    file = glob.glob(bids_dir+'*'+name+'*.json')[0]
 
     acqu_time_j = GetAcquFromJSON(file)
     #json file for time XX:XX:0Y.XXX is saved as XX:XX:Y.XXX
@@ -446,7 +438,6 @@ def FindFrameNr(tim, subj, name, seq_type, mot, bids_dir=None, track_dir=None):
     
     # add time to start of acquisition:
     start_time = acqu_time
-    #start_time = start_time[0:2]+':'+start_time[2:4]+':'+start_time[4:]
     end_time = end_time[0:2]+':'+end_time[2:4]+':'+end_time[4:]
     
     frames, tmp1, tmp2, remote = np.loadtxt(tim, skiprows=11, dtype=str, unpack=True)
@@ -546,7 +537,7 @@ def ExtractMotionParForScan(subj, name, seq_type):
     track_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/source/'+subj+'TCLdata/'
     
     name_ = name
-    #if 'DIFF' in name:
+    #if 'DIFF' in name: # DIFF
     #    name_ = name.replace('DIFF', 'TRACEW_B0')
     mat_file, time_file, mot_file = FindPOA_TIM(subj, name_, bids_dir, track_dir)
     
@@ -602,14 +593,12 @@ def ExtractMotionMatForScan(subj, name, seq_type, track_dir=None, bids_dir=None)
 
     '''
     if bids_dir is None:
-        #bids_dir = '../BIDSdata_defaced/'+subj
         bids_dir = root+subj+'anat/'
     if track_dir is None:
-        #track_dir = '../TCLData/'+subj
         track_dir = root+'source/' + subj + 'TCLdata/'
     
     name_ = name
-    #if 'DIFF' in name:
+    #if 'DIFF' in name: # DIFF
     #    name_ = name.replace('DIFF', 'TRACEW_B0')
     mat_file, time_file, mot_file = FindPOA_TIM(subj, name_, bids_dir, track_dir)
     

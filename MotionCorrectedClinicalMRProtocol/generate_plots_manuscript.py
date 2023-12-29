@@ -12,26 +12,16 @@ plt.style.use('seaborn-whitegrid')
 matplotlib.rc('axes', edgecolor='black')
 from matplotlib.ticker import ScalarFormatter
 
-#out_dir = '../Results/Plots/'
-out_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/results/plots/'
+out_dir = '../Results/Plots/'
 
-#in_dir_mot = '../Results/Motion_Estimates/'
-in_dir_mot = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/results/Motion_Estimates/'
-#in_dir_met = '../Results/Metrics_Results/'
-in_dir_met = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/results/metricsresults/'
-#in_dir_qs = '../ObserverQualityScores/'
-in_dir_qs = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/source/observer_quality_scores/'
-#out_dir_metrics = '../Results/Metrics_Results/Comparison/'
-out_dir_metrics = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/results/metricsresults/comparison/'
+in_dir_mot = '../Results/Motion_Estimates/'
 
-#subdir = []
-#for i in range(1,10):
-#    subdir.append('Subject_0'+str(i)+'/')
-#for i in range(10,20):
-#    subdir.append('Subject_'+str(i)+'/')
-#for i in range(20,23):
-#    subdir.append('Subject_'+str(i)+'/')
-#sequs = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_TIRM', 'T2STAR', 'DIFF']
+in_dir_met = '../Results/Metrics_Results/'
+
+in_dir_qs = '../ObserverQualityScores/'
+
+out_dir_metrics = '../Results/Metrics_Results/Comparison/'
+
 
 subdir = []
 for i in range(1,10):
@@ -40,23 +30,16 @@ for i in range(10,20):
     subdir.append('sub-'+str(i)+'/')
 for i in range(20,23):
     subdir.append('sub-'+str(i)+'/')
-print('subdir: ', subdir) #Tjek
+
 sequs = ['mprage', 'flair', 't2tse', 't1tirm', 't2star']
-
-
-
 
 save = '_2022_05_27'
 
 plot_motion = True
 plot_still = True
 plot_nod = False
-plot_DWI = False #Først når diff er klar
-calc_ADC_hist = False #Først når diff er klar
-
-
-# Own attempt of Boxplot
-
+plot_DWI = False # DIFF
+calc_ADC_hist = False # DIFF
 
 
 ''' (1) Plot motion data: '''
@@ -66,11 +49,9 @@ if plot_motion:
     # cathegory: RMS, then median, then maximum
     p_values = []
     effect_size = []
-    #for mot in ['STILL', 'NOD', 'SHAKE']:
-    for mot in ['run-01', 'run-02', 'run-03']: #I dette loop bliver der appen
+    for mot in ['run-01', 'run-02', 'run-03']:
         RMS, median, maxim, descr = [], [], [], []
         for sequ in sequs:
-            #if mot == 'SHAKE' and sequ != 'T1_MPR':
             if mot == 'run-03' and sequ != 'mprage':
                 continue
             # find the most recent data:
@@ -98,46 +79,29 @@ if plot_motion:
 
         effect_size.append(ES)
 
-    #print('RMS : ', RMS, 'median : ', median, 'maxim : ', maxim, 'descr : ', descr, 'p_values : ', p_values, 'effect_size : ', effect_size)
-            
     #correct for multiple comparisons:
     p_values = np.concatenate(p_values)
-    #print('p_values after correction : ', p_values)
     rej, p_values_cor, _, __ = multipletests(p_values, alpha=0.05, 
                                              method='fdr_bh', is_sorted=False, 
                                              returnsorted=False)
-    
-    #p_values_cor_still = p_values_cor[0:18]                         #SPØRG disse skal ændres da diff er væk (?), men hvordan skal de fordeles?
-    #p_values_cor_nod = p_values_cor[18:36]
-    #p_values_cor_shake = p_values_cor[36:]
-    #p_values_cor_still = p_values_cor[0:15] # trækker 3 fra 18, da der før var
-    #p_values_cor_nod = p_values_cor[15:30]
-    #p_values_cor_shake = p_values_cor[30:]
-    p_values_cor_still = p_values_cor[0: 3*len(sequs)]   #Kan dette være forkert? Vi har rettet da dif mangler
+
+    p_values_cor_still = p_values_cor[0: 3*len(sequs)]
     p_values_cor_nod = p_values_cor[3*len(sequs): 6*len(sequs)]
     p_values_cor_shake = p_values_cor[6*len(sequs):]
-    print('3*len(sequ)', 3*len(sequs))
-    print('len_p_values : ', len(p_values_cor))
-    print('len p_val shake : ', len(p_values_cor_shake))
-    print('len p_val still : ', len(p_values_cor_still))
-    print('len p_val nod : ', len(p_values_cor_nod))
 
-    ind_p = np.array([[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]])    #Spørg : betydning af disse. Har de betydning ift. DIFF er væk
+    ind_p = np.array([[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]])
     ind_sh = np.array([[0,1]])
     
     
     # plot:
     num = 0
     plt.figure(figsize=(13,10))
-    #for mot in ['STILL', 'NOD']:
     for mot in ['run-01', 'run-02']:
-        RMS, median, maxim, descr = [], [], [], [] #Spørg : hvorfor RMS, median, maxim, descr defineres både her, og i linje 63
+        RMS, median, maxim, descr = [], [], [], []
         for sequ in sequs:
             # find the most recent data:
             file = glob.glob(in_dir_mot+'MotionMetrics_'+mot+'/'+sequ+'*.txt')
-            print('file : ', file)
             file = [f for f in file if 'mid' not in f]  # sort out mid
-            print ('file loop : ', file)
             if len(file)>0:
                 file = SortFiles(file)
                 
@@ -151,15 +115,10 @@ if plot_motion:
             maxim.append(metrics[5])
             descr.append(sequ)
             descr.append(sequ)
-            #print('RMS : ', RMS, 'median : ', median, 'maxim : ', maxim, 'descr : ', descr, 'p_values : ', p_values, 'effect_size : ', effect_size)
 
-        #if mot == 'NOD':
         if mot == 'run-02':
-            print('inside if mot == run-02')
-            #mot_s = 'SHAKE'
             mot_s = 'run-03'
             RMS_s, median_s, maxim_s, descr_s = [], [], [], []
-            #sequ = 'T1_MPR'
             sequ = 'mprage'
             # find the most recent data:
             file = glob.glob(in_dir_mot+'MotionMetrics_'+mot_s+'/'+sequ+'*.txt')
@@ -178,7 +137,6 @@ if plot_motion:
             descr_s.append(sequ)
             descr_s.append(sequ)
             mean_RMS_s, mean_med_s, mean_max_s = [], [], []
-            print('descr_s : ', descr_s)
             for i in range(len(RMS_s)):
                 mean_RMS_s.append(np.mean(RMS_s[i]))
                 mean_med_s.append(np.mean(median_s[i]))
@@ -198,19 +156,10 @@ if plot_motion:
             labels.append('without PMC')
             labels.append('with PMC')
         small = dict(markersize=3)
-            
-        # change 'TIRM' into STIR for descr:    
-        # and change 'TRACEW_B0' to 'DWI'
-        #for i in range(len(descr)):
-        #    if descr[i]=='TRACEW_B0':
-        #        descr[i]='DWI'
-        #    if descr[i]=='T1_TIRM':
-        #        descr[i]='T1_STIR'
-        #    if descr[i]=='T2STAR':
-        #        descr[i]='T2*'
+
 
         for i in range(len(descr)):
-            # if descr[i]=='TRACEW_B0':
+            # if descr[i]=='TRACEW_B0': # DIFF
             #    descr[i]='DWI'
             if descr[i] == 'mprage':
                 descr[i] = 'T1_MPR'
@@ -218,16 +167,13 @@ if plot_motion:
                 descr[i] = 'T2_FLAIR'
             if descr[i] == 't2tse':
                 descr[i] = 'T2_TSE'
-            # if descr[i]=='T1_TIRM':
             if descr[i] == 't1tirm':
                 descr[i] = 'T1_STIR'
-            # if descr[i]=='T2STAR':
             if descr[i] == 't2star':
                 descr[i] = 'T2*'
 
         
         # plot the data:
-        #if mot=='STILL':
         if mot == 'run-01':
             ax0=plt.subplot2grid((4,5), (0,0), colspan=4)
             ax = ax0
@@ -237,7 +183,6 @@ if plot_motion:
         MakeBoxplot(RMS, colors)
         for i in range(len(mean_RMS)):
             plt.plot(i+1, mean_RMS[i], '.', c=colors[i], ls='')
-        #if mot=='STILL':
         if mot=='run-01':
             for y1, y2 in zip(RMS[4], RMS[5]):
                     plt.plot([5,6], [y1, y2], 'darkslategray', lw=0.7)
@@ -251,32 +196,25 @@ if plot_motion:
         plt.ylabel('RMS displ [mm]')
         plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
         lim = plt.gca().get_ylim()
-        print('lim from plt : ', lim)
-        print('(lim[1]-lim[0])*1.2+lim[0]: ', (lim[1]-lim[0])*1.3+lim[0])
         plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
         ax.text(-0.1, .95, string.ascii_lowercase[num], transform=ax.transAxes,
                 size=20, weight='bold')
         num += 1
-        #if mot=='STILL':
         if mot=='run-01':
             use = 0
             low = -1
-        #if mot == 'NOD':
         if mot == 'run-02':
             use = 1
             low = -4
         
         max_RMS = [np.amax(RMS[i]) for i in range(len(RMS))]
-        #if mot=='STILL':
         if mot == 'run-01':
-            #Show_Stars(p_values_cor_still[0:5], ind_p, np.arange(1, len(RMS)+1),
             Show_Stars(p_values_cor_still[0:len(sequs)], ind_p, np.arange(1, len(RMS) + 1),
                        max_RMS, dh=0.05, col='black')
             
             ax01=plt.subplot2grid((4,5), (1,0), colspan=4)
             ax = ax01
         else:
-            #Show_Stars(p_values_cor_nod[0:5], ind_p, np.arange(1, len(RMS)+1),
             Show_Stars(p_values_cor_nod[0:len(sequs)], ind_p, np.arange(1, len(RMS) + 1),
                        max_RMS, col='black')
             
@@ -288,7 +226,6 @@ if plot_motion:
                      label=labels[i])
         for i in range(2,len(mean_RMS)):
             plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='')
-        #if mot=='STILL':
         if mot == 'run-01':
             for y1, y2 in zip(maxim[4], maxim[5]):
                     plt.plot([5,6], [y1, y2], 'darkslategray', lw=0.7)
@@ -301,23 +238,19 @@ if plot_motion:
         ax.text(-0.1, .95, string.ascii_lowercase[num], transform=ax.transAxes,
                 size=20, weight='bold')
         num += 1
-        #if mot=='STILL':
         if mot == 'run-01':
             use = 0
             low = -3       
         max_max = [np.amax(maxim[i]) for i in range(len(RMS))]
-        #if mot=='STILL':
         if mot == 'run-01':
-            #Show_Stars(p_values_cor_still[12:], ind_p, np.arange(1, len(RMS)+1),
-            Show_Stars(p_values_cor_still[2*len(sequs):], ind_p, np.arange(1, len(RMS) + 1), # when diff added change [10:] to [12:]
+            Show_Stars(p_values_cor_still[2*len(sequs):], ind_p, np.arange(1, len(RMS) + 1), # when DIFF added change [10:] to [12:]
                        max_max, col='black')
             legend = plt.legend(loc='upper center', bbox_to_anchor=(1.16, 1.3), 
                                 fontsize=13, frameon=True)
         else:
-            Show_Stars(p_values_cor_nod[2*len(sequs):], ind_p, np.arange(1, len(RMS)+1), # when diff added change [10:] to [12:]
+            Show_Stars(p_values_cor_nod[2*len(sequs):], ind_p, np.arange(1, len(RMS)+1), # when DIFF added change [10:] to [12:]
                        max_max, col='black')
-        
-        #if mot == 'NOD':
+
         if mot == 'run-02':
             ax4=plt.subplot2grid((4,5), (2,4))
             ax = ax4
@@ -325,7 +258,6 @@ if plot_motion:
             MakeBoxplot(RMS_s, colors)
             for i in range(len(mean_RMS_s)):
                 plt.plot(i+1, mean_RMS_s[i], '.', c=colors[i], ls='')
-            #plt.title(mot_s+' scans', fontsize=17)
             title_mot = 'SHAKE'
             plt.title(title_mot + ' scans', fontsize=17)
             plt.xticks(ticks=np.arange(1, len(RMS_s)+1), labels=descr_s)
@@ -335,7 +267,6 @@ if plot_motion:
                     transform=ax.transAxes, size=20, weight='bold')
             num += 1
             max_RMS = [np.amax(RMS_s[i]) for i in range(len(RMS_s))]
-            print('p_values_cor_shake : ', p_values_cor_shake)
             Show_Stars(np.array([p_values_cor_shake[0]]), ind_sh, 
                        np.arange(1, len(RMS)+1), max_RMS, col='black')
             
@@ -360,14 +291,11 @@ if plot_motion:
                        np.arange(1, len(RMS)+1), max_max, col='black')
 
     legend.get_frame().set_linewidth(2)
-    plt.subplots_adjust(hspace=0.4, wspace=0.4) #oprindelig
-    #plt.subplots_adjust(hspace = 0.12, wspace = 0.8)
-    #plt.tight_layout()
+    plt.subplots_adjust(hspace=0.4, wspace=0.4)
     plt.savefig(out_dir+'Boxplot_motion_'+save+'.tiff', format='tiff', 
                 bbox_inches='tight', dpi=200)
     plt.savefig(out_dir+'Boxplot_motion_'+save+'.png', format='png', 
                 bbox_inches='tight', dpi=200)
-    #plt.ion() #Added this, otherwise the script stops running after plt.show()
     plt.show()
 
 
@@ -378,7 +306,7 @@ onlyRR = False
 quality_scores = True
 show_stat_test = True
 
-#sequs = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_TIRM', 'T2STAR', 'TRACEW_B1000']
+
 sequs = ['mprage', 'flair', 't2tse', 't1tirm', 't2star']
 
 
@@ -386,25 +314,16 @@ sequs = ['mprage', 'flair', 't2tse', 't1tirm', 't2star']
 ssims, psnrs, tgs, qss, names_tes = [], [], [], [], []
 p_ssims, p_psnrs, p_tgs, p_qss, ind_ps = [], [], [], [], []
 for sequ in sequs:
-    print('inside if : ', sequ)
-    n = len(subdir) # subdir er mapperne til alle patienterne. dvs. len(subdir) er 22. Dette passer dog ikke til fx. t2star da det kun er 19 patienter der modtog denne scanning. Der er også kun 10 der har fået flair
-    #print(sequ, 'tjek af n : ', n)
-    #if sequ == 'T1_MPR':
+    n = len(subdir)
     if sequ == 'mprage':
         m = 10
-        #names = np.array(['MOCO_ON_STILL', 'MOCO_ON_SHAKE_RR', 'MOCO_ON_SHAKE',
-        #                  'MOCO_ON_NOD_RR', 'MOCO_ON_NOD', 'MOCO_OFF_STILL',
-        #                  'MOCO_OFF_SHAKE_RR', 'MOCO_OFF_SHAKE',
-        #                  'MOCO_OFF_NOD_RR', 'MOCO_OFF_NOD'])
-        names = np.array(['pmcon_rec-wore_run-01', 'pmcon_rec-wore_run-03', 'pmcon_rec-wre_run-03',  #STILL er alle RR/wore, det er blot implied, selvom der ikke direkte står RR  den oprindelige navngivning
+        names = np.array(['pmcon_rec-wore_run-01', 'pmcon_rec-wore_run-03', 'pmcon_rec-wre_run-03',
                           'pmcon_rec-wore_run-02', 'pmcon_rec-wre_run-02', 'pmcoff_rec-wore_run-01',
                           'pmcoff_rec-wore_run-03', 'pmcoff_rec-wre_run-03',
                           'pmcoff_rec-wore_run-02', 'pmcoff_rec-wre_run-02'])
     elif sequ == 't2star':
         m = 4
-        n = 19 #forsøg på at få det rigtig da t2star kun har 19 patienter
-        #names = np.array(['MOCO_ON_STILL', 'MOCO_ON_NOD_RR', 'MOCO_ON_NOD',RR
-        #                  'MOCO_OFF_STILL', 'MOCO_OFF_NOD_RR', 'MOCO_OFF_NOD'])
+        n = 19
         names = np.array(['pmcon_rec-wore_run-01', 'pmcon_rec-wore_run-02',
                           'pmcoff_rec-wore_run-01', 'pmcoff_rec-wore_run-02'])
 
@@ -415,45 +334,33 @@ for sequ in sequs:
                           'pmcoff_rec-wore_run-01', 'pmcoff_rec-wore_run-02', 'pmcoff_rec-wre_run-02'])
     else:
         m = 6
-        #names = np.array(['MOCO_ON_STILL', 'MOCO_ON_NOD_RR', 'MOCO_ON_NOD',
-        #                  'MOCO_OFF_STILL', 'MOCO_OFF_NOD_RR', 'MOCO_OFF_NOD'])
         names = np.array(['pmcon_rec-wore_run-01', 'pmcon_rec-wore_run-02', 'pmcon_rec-wre_run-02',
                           'pmcoff_rec-wore_run-01', 'pmcoff_rec-wore_run-02', 'pmcoff_rec-wre_run-02'])
 
-    ssim, psnr, tg_, qs = np.zeros((n,m)), np.zeros((n,m)), np.zeros((n,m)),  np.zeros((n,m)) # n var oprindelig 22 for alle. Dette er dog rettet til 19 for t2star og 10 for flair da det kun er det antal patineter der har modtaget den scannning
-    print('sequ : ', sequ, 'ssim shape : ',np.shape(ssim), 'psnr shape : ',np.shape(psnr), 'tg_ shape : ',np.shape(tg_), 'qs shape : ',np.shape(qs)) #her kommer der ikke noget for mprage
+    ssim, psnr, tg_, qs = np.zeros((n,m)), np.zeros((n,m)), np.zeros((n,m)),  np.zeros((n,m))
     i=0
     print('Files used for calculation:')
     for sub in subdir:
-        print('sub : ', sub)
         # skip all volunteers where the following sequences were not acquired
-        #if sequ in ['ADC', 'TRACEW_B0', 'TRACEW_B1000', 'T2_FLAIR', 'T2STAR']: #ADC, TRACEW_B0 og TRACEW_B1000 hører alle til DIFF
         if sequ in ['flair', 't2star']:
             tmp = os.listdir(in_dir_met + sub)
-            print('tmp : ', tmp)
             tmp_ = ''
-            print('tmp_ : ', tmp_)
             if sequ not in tmp_.join(tmp):
                 continue
 
-        
         folder = in_dir_met+sub  
         file_ = glob.glob(folder+'Values_*'+sequ+'*')
         file = file_
-        #file = [f for f in file_ if f.find('Retro')==-1]
-        #print('file : ', file)
         
         if len(file)>0:
             # get the most recent file:
             file = SortFiles(file, True)
-            print('file[0] loading', file[0])
+            print(file[0])
             tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, usecols=0, 
                               skiprows=1)
             tmp2, tmp3, tmp4 = np.loadtxt(file[0], unpack=True,
                                           usecols=(1,2,3), skiprows=1)
-            print('sub, sequ, size of tmp1 and tmp4 : ', sub, sequ, np.size(tmp1), tmp4)
 
-            #if sequ == 'T2STAR' and np.size(tmp1) == 1:
             if sequ == 't2star' and np.size(tmp1) == 1:
                 # A few subject only contain a MOCO OFF STILL T2STAR scan.
                 # Those were only acquired for comparison with susceptibility
@@ -463,43 +370,22 @@ for sequ in sequs:
             
             incl = []
             for na,s,p,t in zip(tmp1, tmp2, tmp3, tmp4):
-                #print('na : ', na)
-                #print(' sequ and t  (tmp4): ', sequ, t) #seem normal
-                #if sequ in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:  #overflødigt da 'wore' allerede er en del af navnet
-                #if sequ in ['t2star']:
-                 #   if 'NOD' in na:
-                 #   if 'run-02' in na:
-                 #       print('na : ', na)
-                        #na = na+'_RR'
-                 #       na = na + 'wore'
-                 #       print('na efter : ', na)
-
-
-                #print('where names = na', np.where(names == na))
                 ind = np.where(names==na)[0][0]
-                #print('np.where(names==na) : ', np.where(names==na))
-                #print('ind :', ind)
-                ssim[i,ind], psnr[i,ind], tg_[i,ind] = s, p, t # Første index (før var det et m*n array med zeros) omdøbes til hhv. s, p og t. Det er blot en float.
-                print('s, p, t : ', s, p, t)
-                print('tg_ ', tg_)
+                ssim[i,ind], psnr[i,ind], tg_[i,ind] = s, p, t
                 incl.append(ind)
                 # 0 entires represent non-existing scans
             
             # do the same for quality scores:
-            #if sequ not in ['T2STAR', 'ADC', 'TRACEW_B0', 'TRACEW_B1000']:
             if sequ not in ['t2star']:
                 file = glob.glob(in_dir_qs+sequ+' Score.txt')
-                #print('file for qs: ', file)
                 if len(file)>0:
                     # get the most recent file:
                     file = SortFiles(file)
-                    print(file[0])
                     
                     subj_names = np.loadtxt(file[0], unpack=True, dtype=str, usecols=0,
                                             skiprows=1)
                     tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, usecols=1,
                                             skiprows=1)
-                    #print('tmp1, file', tmp1, file)
                     tmp2, tmp3, tmp4 = np.loadtxt(file[0], unpack=True, usecols=(2,3,4),
                                                   skiprows=1)
                     
@@ -507,13 +393,10 @@ for sequ in sequs:
                     tmp2 = tmp2[subj_names==sub[:-1]]
                     tmp3 = tmp3[subj_names==sub[:-1]]
                     tmp4 = tmp4[subj_names==sub[:-1]]
-
-                    print('tmp1, tmp2, tmp3, tmp4 : ', tmp1, tmp2, tmp3, tmp4)
                 
                     incl = []
                     for na,q1,q2,q3 in zip(tmp1, tmp2, tmp3, tmp4):
                         if 'RETRO' not in na:
-                            #ind = np.where(names==na[:-1])[0][0] #Jeg går ud fra at hun vil koordinaterne til hvor names er det samme som na
                             ind = np.where(names == na)[0][0]
                             # average the scores of the three raters with double weight for the radiologist
                             qs[i,ind] = (q1+q2+2*q3)/4
@@ -521,7 +404,7 @@ for sequ in sequs:
                     
                 
                             
-            # for DWI quality ranks instead of quality scores:                
+            # for DWI quality ranks instead of quality scores:                # DIFF
             #elif sequ == 'TRACEW_B1000':
             #    file = glob.glob(in_dir_qs+'DWI Rank.txt')
             #    if len(file)>0:
@@ -550,12 +433,6 @@ for sequ in sequs:
             else:
                 qs = np.zeros_like(ssim)
             i+=1
-    print('after sub loop')
-    print('subject and sequ: ', sub, sequ)
-    print('tg_ : ', tg_)
-    print('tg shape', np.shape(tg_))
-    print('len tg', len(tg_))
-    print('len tg[0] : ', len(tg_[0]))
 
     names = np.tile(names, (n,1))
 
@@ -575,31 +452,26 @@ for sequ in sequs:
     tg_[tg_==0] = np.nan
     qs[qs==0] = np.nan
 
-    print('so far so good')
     ''' perform parametric tests:'''
     # resort names and data (only for test), final resorting will be performed
     # after RR scans are potentially sorted out:
     names_ch = []
     for n in names:
         ind=n.find('_', 5)
-        print(' n : ', n)
         #if 'OFF' in n:
         if 'off' in n:
             tmp = 'C'
         #elif 'ON' in n:
         elif 'on' in n:
             tmp = 'A'
-        elif 'RETRO' in n: # Dette findes ikke
+        elif 'RETRO' in n:
             tmp = 'B'
         names_ch.append(n[ind+1:]+'_'+tmp)
 
     names_ch = np.array(names_ch)
-    print('names_ch , ', names_ch)
     ind = np.argsort(names_ch)[::-1]
 
     ssim_p, psnr_p, tg_p, qs_p = ssim[:,ind], psnr[:,ind], tg_[:,ind], qs[:,ind]
-    print('sequ : ', sequ)
-    print('tg_p : ', tg_p)
     names_p = names_ch[ind]
 
     p_ssim, rej_ssim, ind_p, alt = PerformWilcoxonAllImg('SSIM', ssim_p, sequ, 
@@ -613,7 +485,6 @@ for sequ in sequs:
 
     # sort out the relevant tests:
     if onlyRR == True:
-        #if sequ == 'T1_MPR':
         if sequ == 'mprage':
             rel_tests = [0,1,4]
             p_ssim, p_psnr = p_ssim[rel_tests], p_psnr[rel_tests]
@@ -626,7 +497,6 @@ for sequ in sequs:
             ind_p = np.array([[0,1], [2,3]])
 
     if withRR == False:
-            #findRRs = np.char.find(names, 'RR')
             findRRs = np.char.find(names, 'rec-wore')
             findRRs = (findRRs<0)
             names = names[findRRs]
@@ -639,9 +509,7 @@ for sequ in sequs:
 
 
     if onlyRR == True:
-        #findRRs = np.char.find(names, 'RR')
         findRRs = np.char.find(names, 'rec-wore')
-        #findstills = np.char.find(names, 'STILL')
         findstills = np.char.find(names, 'run-01')
         both = findRRs*findstills
         both = (both<0)
@@ -674,30 +542,21 @@ for sequ in sequs:
     names = names[ind]
     mean_ssim, mean_psnr =  mean_ssim[ind], mean_psnr[ind]
     mean_tg_, mean_qs = mean_tg_[ind], mean_qs[ind]
-    print('sequ : ', sequ)
-    print('tg_ again : ', tg_)
-    print('len of tg_ : ', len(tg_))
     names_te = []
     for i in range(int(len(names))):
         tmp = names[i]
         if 'RETRO' in tmp:
             app = 'retrospective MoCo'
-        #elif 'ON' in tmp:
         elif 'on' in tmp:
             app = 'prospective MoCo'
-        #elif 'OFF' in tmp:
         elif 'off' in tmp:
             app = 'no MoCo'
         if onlyRR == False:
-            #if 'RR' in tmp or 'STILL' in tmp:
             if 'rec-wore' in tmp or 'run-01' in tmp:
                 app = app + ' no REAC'
             else:
                 app = app + ' with REAC'
         names_te.append(app)
-
-    print(sequ)
-    print('tg_ before mask', tg_)
 
     # sort out nans (whole rows for subjects wihtout that sequence)
     mask = np.where(np.isnan(ssim[:,0])==False)[0]
@@ -705,17 +564,13 @@ for sequ in sequs:
     mask = np.where(np.isnan(psnr[:,0])==False)[0]
     psnr = psnr[mask]
     mask = np.where(np.isnan(tg_[:,0])==False)[0]
-    print('mask : ', mask)
     tg_ = tg_[mask]
-    print('tg after mask', tg_)
     mask = np.where(np.isnan(qs[:,0])==False)[0]
     qs = qs[mask]
     
     # normalise tg values by dividing with mean value of off still
     val = np.mean(tg_[:,0])
     tg_ = tg_/val
-    print('sequ ', sequ)
-    print('normalizes tg_ ', tg_)
     
 
     # new color code:
@@ -743,13 +598,7 @@ for sequ in sequs:
 
 ''' (3) Plot image quality metrics for still scans: '''
 if plot_still:
-    #metrics = [tgs, qss, np.array([qss[-1]])]
     metrics = [tgs, qss[:-1], np.array([qss[-1]])]
-    #print('qss[:-1] : ', qss[:-1])
-    #print('len(qss[:-1])', len(qss[:-1]))
-    #print('len(tgs)', len(tgs))
-    #print('len(qss)', len(qss))
-    #p_values = [p_tgs, p_qss[0:4], np.array([p_qss[-1]])]
     p_values = [p_tgs, p_qss[:-1], np.array([p_qss[-1]])]
     labels = ['Tenengrad', 'Observer Scores', 'Quality Rank']
     colors = ['tab:orange', 'tab:blue', 'tab:orange', 'tab:blue', 'tab:orange', 
@@ -758,33 +607,20 @@ if plot_still:
     fig_labels = ['without PMC', 'with PMC']
     small = dict(markersize=3)
     x = np.arange(1,13)
-    a = [0,2,4,6,8,10] #Skal nok ændres pga. diff
+    a = [0,2,4,6,8,10]
     b = [1,3,5,7,9,11]
     c = [1,3,5,7,9,11]
     d = [2,4,6,8,10,12]
 
-    #a = [0,2,4,6,8] #forsøg
-    #b = [1,3,5,7,9]
-    #c = [1,3,5,7,9]
-    #d = [2,4,6,8,10]
-
-    print('tgs : ', tgs)
-    print('metrics[0] : ', metrics[0])
-
 
     num = 0
     plt.figure(figsize=(10,9))
-    #for i, metric, p, lab in zip(range(0,3), metrics, p_values, labels): #range(0,3) da der er tre plots: a) tenengrad, b) observer scores, c)quality rank for dwi, men vi har ikke dwi
-    for i, metric, p, lab in zip(range(0,2), metrics, p_values, labels):
-        print('i , lab : ',i, lab)
-        print('len(metric) : ', len(metric)) #metric bør være 5 når i == 0 og 4 når i == 1 da det svarer til hhv. tenengrad og observer scores
+    for i, metric, p, lab in zip(range(0,2), metrics, p_values, labels): # when DIFF is added change to range(0,3)
         m_still = []
         means = []
         for m in metric:
-            print('i and m : ', i, m)
             if len(m)>0:
                 m_still.append(m[:,0])
-                print('m[:,0] : ', m[:,0])
                 m_still.append(m[:,1])
                 means.append(np.nanmean(m[:,0]))
                 means.append(np.nanmean(m[:,1]))
@@ -792,34 +628,16 @@ if plot_still:
         for pval in p:
             p_still.append(pval[0])
 
-        print(sequ)
-        print(sub)
-        print('m_still len', len(m_still))
-        print('m_still before plot', m_still) #den sidste m_still er tom da den scaewe til DW
-
-        #plot panel A fig 4
         if i == 0:
             ax = plt.subplot2grid((2,6), (0,0), colspan=6)
             box1 = plt.boxplot(m_still, flierprops=small)
             for j in range(len(means)):
                 plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
-            #ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*', 'TRACEW']
             ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*']
-            #ticks = [1.5, 3.5, 5.5, 7.5, 9.5, 11.5] #placement of ticks. One too many due to missing DIFF
-            ticks = [1.5, 3.5, 5.5, 7.5, 9.5]
+            ticks = [1.5, 3.5, 5.5, 7.5, 9.5] # when DIFF added, add 11.5 to list
             plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
 
-        #plt.show()
-
-        # Plot panel B fig 4
-
-        #prøver kun at plotte observer scores
-        #if i == 1:
-        #    plt.figure(5)
-        #    plt.boxplot(m_still[0:8])
-        #    plt.title('own attempt')
-        #    ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR']
-        #    plt.show()
+        plt.show()
 
 
         elif i == 1:
@@ -835,8 +653,9 @@ if plot_still:
 
 
             plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
-        #plt.show()
-        #else: #DWI
+        plt.show()
+
+        #else: #DWI # DIFF
         #    ax = plt.subplot2grid((2,6), (1,5), colspan=1)
         #    box1 = plt.boxplot(m_still, flierprops=small)save = '_2022_05_27'
         #    for j in range(len(means)):
@@ -857,7 +676,7 @@ if plot_still:
             for v in m_still:
                 maxi.append(np.amax(v))
             if i == 0:
-                #indices = [[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]] #diff mangler
+                #indices = [[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]] # DIFF
                 indices = [[0,1], [2,3], [4,5], [6,7], [8,9]]
                 Show_Stars(np.array(p_still), indices[0:len(p_still)], x, maxi,
                            col='black')
@@ -865,16 +684,13 @@ if plot_still:
                 indices = [[0,1], [2,3], [4,5], [6,7]]
                 Show_Stars(np.array(p_still), indices[0:len(p_still)], x[0:8], maxi[0:8],
                            col='black')
-            #else:  #dette er DWI
+            #else:  # DIFF
             #    indices = [[0,1]]
             #    Show_Stars(np.array(p_still), indices[0:len(p_still)], x, maxi,
             #               col='black')
             lim = plt.gca().get_ylim()
             plt.ylim(lim[0],(lim[1]-lim[0])*1.05+lim[0])
-            #plt.ylim(0.6, 1.6)
-        print('len(a) : ', len(a))
-        print('len(p_still) : ', len(p_still))
-        print('len(m_still) : ', len(m_still))
+
         DrawLines2(a[0:len(p_still)],b[0:len(p_still)],c[0:len(p_still)],
                    d[0:len(p_still)],m_still, lw=0.7, col='darkslategray')
 
@@ -896,7 +712,6 @@ if plot_still:
                                 bbox_to_anchor=(0.4, -0.3), fontsize=14,
                                 frameon=True)
             plt.yticks(ticks=[2.5, 3, 3.5, 4, 4.5, 5])
-            #plt.ylim((2.5,5.5))
 
     plt.tight_layout()
     legend.get_frame().set_linewidth(2)
@@ -907,7 +722,6 @@ if plot_still:
                 bbox_inches='tight', dpi=200)
     plt.show()
 
-print('after plotting')
 
 ''' (4) Plot image quality metrics for nodding scans: '''
 if plot_nod:
@@ -1099,7 +913,6 @@ if plot_nod:
                     legend = plt.legend( loc='lower left', ncol=2, 
                                         bbox_to_anchor=(0.45, -0.4), fontsize=12, 
                                         frameon=True)
-                #ticklabels = ['T2_TSE', 'T1_STIR', 'T2*', 'TRACEW']
                 ticklabels = ['T2_TSE', 'T1_STIR', 'T2*']
                 ticks = [2.5, 7.5, 11.5, 14.5]
                 plt.xticks(labels=ticklabels, ticks=ticks, fontsize=12)
@@ -1203,20 +1016,16 @@ if plot_DWI:
         
     subdir = [] 
     for i in range(1,10):
-        #subdir.append('Subject_0'+str(i)+'/')
         subdir.append('sub-0'+str(i)+'/')
     for i in range(10,20):
-        #subdir.append('Subject_'+str(i)+'/')
         subdir.append('sub' + str(i) + '/')
     for i in range(20,23):
-        #subdir.append('Subject_'+str(i)+'/')
         subdir.append('sub-' + str(i) + '/')
         
 
     if calc_ADC_hist:
         all_mean, all_std, all_sum = [], [], []
         for sub in subdir:
-            #print('Subject of interest is '+sub)
             # sort out subjects for which no DWI scans available:
             tmp = os.listdir(sub_out_dir+sub)
             tmp_ = ''
@@ -1228,7 +1037,6 @@ if plot_DWI:
             still_off = glob.glob(im_dir+sub+'/TCLMOCO_OFF_STILL_EP2D_DIFF_EXTTRACKING_ADC*.nii')[0]
             still = nib.load(still_off).get_fdata().astype(np.uint16)
             bm = glob.glob(bm_dir+sub+'bm_mov_*ADC*.nii')[0]
-            #glob.glob(in_dir+sub+'bm_mov_*ADC*.nii')[0]
             bm = nib.load(bm).get_fdata().astype(np.uint16)        
 
             still = still*bm

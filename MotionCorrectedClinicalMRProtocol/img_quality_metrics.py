@@ -158,19 +158,15 @@ def Comp_All_Metrics(all_img, bm_file, ref_file, out_dir, save, tag, normal=True
         tmp, filename = os.path.split(all_img[i])
 
         # search for movement type
-        #test = filename.find('MOCO_OFF')
         test = filename.find('pmcoff')
         if test > 0:
-            #descr = 'MOCO_OFF_'
             descr = 'pmcoff_'
         else:
-            #test = filename.find('MOCO_ON')
             test = filename.find('pmcon')
             if test > 0:
-                #descr = 'MOCO_ON_'
                 descr = 'pmcon_'
             else:
-                test = filename.find('MOCO_RETRO_') #SPØRG
+                test = filename.find('MOCO_RETRO_')
                 if test > 0:
                     descr = 'MOCO_RETRO_'
                 else:
@@ -179,33 +175,25 @@ def Comp_All_Metrics(all_img, bm_file, ref_file, out_dir, save, tag, normal=True
         # test = filename.find('_RR_')
         test = filename.find('rec-wore')
         if test > 0:
-            #descr = descr + '_RR'
             descr = descr + 'rec-wore_'
 
         test = filename.find('rec-wre')
         if test > 0:
-            # descr = descr + '_RR'
             descr = descr + 'rec-wre_'
 
-        #test = filename.find('_NOD_')
         test = filename.find('run-02')
         if test > 0:
-            #descr = descr + 'NOD'
             descr = descr + 'run-02'
         else:
-            #test = filename.find('_STILL_')
             test = filename.find('run-01')
             if test > 0:
-                #descr = descr + 'STILL'
                 descr = descr + 'run-01'
             else:
-                #test = filename.find('_SHAKE_')
                 test = filename.find('run-03')
                 if test > 0:
-                    #descr = descr + 'SHAKE'
                     descr = descr + 'run-03'
                 else:
-                    test = filename.find('_SHIFT_') #SPØRG
+                    test = filename.find('_SHIFT_')
                     if test > 0:
                         descr = descr + 'SHIFT'                            
                     else:

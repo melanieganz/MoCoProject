@@ -12,11 +12,9 @@ from statistical_tests import PerformWilcoxonMotion
 
 
 # Define directories, sequences and volunteers to analyse:
-#out_dir = '../Results/Motion_Estimates/'
+out_dir = '../Results/Motion_Estimates/'
 
-out_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/results/Motion_Estimates/'
-
-root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
+root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 
 
 subdir = [] 
@@ -26,26 +24,21 @@ for i in range(10,20):
     subdir.append('sub-'+str(i)+'/')
 for i in range(20,23):
     subdir.append('sub-'+str(i)+'/')
-sequs = ['mprage', 't2tse', 't1tirm', 'flair', 't2star'] #Rettet, bruges til at genkende filer i niftidir, så skulle ændres til BIDS
-#sequs = ['T1_MPR', 'T2_TSE', 'T1_TIRM', 'T2_FLAIR', 'T2STAR', 'DIFF']
-
+sequs = ['mprage', 't2tse', 't1tirm', 'flair', 't2star']
 
 
 
 save = '_2022_06_02'   
 new_calc = True
-plot = False #Der bliver ikke refereret til denne på noget tidspunkt senere i dette script.
+plot = False
 
 
 ''' (1) Calculate the metrics for each sequence and volunteer: '''
 
 if new_calc:
     for sequ in sequs:
-        #motion = ['STILL', 'NOD']
         motion = ['run-01', 'run-02']
-        #if sequ == 'T1_MPR':
         if sequ == 'mprage':
-            #motion = ['STILL', 'NOD', 'SHAKE']
             motion = ['run-01','run-02','run-03']
 
         
@@ -58,35 +51,26 @@ if new_calc:
                 print(subj)
                 
                 # skip all volunteers where the following sequences were not acquired
-                #if sequ in ['DIFF', 'T2_FLAIR', 'T2STAR']:
-                # DIFF
                 if sequ in ['flair', 't2star']:
-                    #tmp = os.listdir('../BIDSdata_defaced/'+subj+'/') #CHANGE to niftidir
-                    tmp = os.listdir(root+subj+'anat/') #niftidir #fixed
+                    tmp = os.listdir(root+subj+'anat/')
                     tmp_ = ''
                     test = sequ
-                    #if sequ == 'DIFF': #IGNORED DUE TO DIFF AND TRACEW
-                    #    test = 'TRACEW_B0'
-                    if test not in tmp_.join(tmp): # Spring over hvis vi mangler
+                    if test not in tmp_.join(tmp):
                         continue
                 
                 # MoCo On:
-                #name = 'MOCO_ON_'+mot+'_*'+sequ+'_'
-                #name = '*'+sequ+'*pmcon'+'*'+ mot +'*' #name is used for finding files which are renamed to follow BIDS.
-                name = sequ + '*pmcon' + '*' + '_' + mot + '_'  # name is used for finding files which are renamed to follow BIDS.
+                name = sequ + '*pmcon' + '*' + '_' + mot + '_'
 
                 seq_type = mot+'_'+sequ    
-                #if sequ == 'TRACEW_B0':    #Change #Ignore because of DIFF?
+                #if sequ == 'TRACEW_B0':    # DIFF
                 #    seq_type = mot+'_DIFF'
                             
                 magn_On, RMS_On, med_disp_On, max_disp_On = CalcMotionMetricsforScan(subj, name, 
-                                                                                     seq_type)  #CHANGE? Lige nu er svarer subj til sub-xx/ dvs. det svarer til en folder. Tror den er god nok
+                                                                                     seq_type)
                 # MoCo Off:
-                #name = 'MOCO_OFF_'+mot+'_*'+sequ+'_'
-                #name = '*' + sequ + '*pmcoff' + '*' + mot + '*'
-                name = sequ + '*pmcoff' + '*' + '_' + mot + '_'  # name is used for finding files which are renamed to follow BIDS.name = sequ + '*pmcon' + '*' + '_' + mot + '_'  # name is used for finding files which are renamed to follow BIDS.
-                seq_type = mot+'_'+sequ    
-                #if sequ == 'TRACEW_B0': #Change #Ignore because of DIFF?
+                name = sequ + '*pmcoff' + '*' + '_' + mot + '_'
+                seq_type = mot+'_'+sequ
+                #if sequ == 'TRACEW_B0': #Change # DIFF
                 #    seq_type = mot+'_DIFF'
                 
                 magn_Off, RMS_Off, med_disp_Off, max_disp_Off = CalcMotionMetricsforScan(subj, 
@@ -110,11 +94,9 @@ if new_calc:
 # stack p-values first STILL, then NOD, then SHAKE, in each cathegory: RMS, then median, then maximum
 p_values = []
 effect_size = []
-#for mot in ['STILL', 'NOD', 'SHAKE']:
 for mot in ['run-01', 'run-02', 'run-03']:
     RMS, median, maxim, descr = [], [], [], []
     for sequ in sequs:
-        #if mot == 'SHAKE' and sequ != 'T1_MPR':
         if mot == 'run-03' and sequ != 'mprage':
             continue
         # find the most recent data:
@@ -141,7 +123,7 @@ for mot in ['run-01', 'run-02', 'run-03']:
 p_values = np.concatenate(p_values)
 rej, p_values_cor, _, __ = multipletests(p_values, alpha=0.05, method='fdr_bh', is_sorted=False, returnsorted=False)
 
-#p_values_cor_still = p_values_cor[0:18] #PERHAPS change back. Ændret fra at gå op i 6 til at gå op i 5 da diff er fjernet
+#p_values_cor_still = p_values_cor[0:18] # DIFF
 #p_values_cor_nod = p_values_cor[18:36]
 #p_values_cor_shake = p_values_cor[36:]
 p_values_cor_still = p_values_cor[0:15]
@@ -149,8 +131,7 @@ p_values_cor_nod = p_values_cor[15:25]
 p_values_cor_shake = p_values_cor[25:]
 
 
-# check that everything correct!!!
-#ind_p = np.array([[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]])
+#ind_p = np.array([[0,1], [2,3], [4,5], [6,7], [8,9], [10,11]]) # DIFF
 ind_p = np.array([[0,1], [2,3], [4,5], [6,7], [8,9]])
 ind_sh = ind = np.array([[0,1]])
 
@@ -158,7 +139,6 @@ ind_sh = ind = np.array([[0,1]])
 
 ''' (3) Load the latest data and plot: '''
 if plot:
-    #for mot in ['STILL', 'NOD']: #CHANGED
     for mot in ['run-01', 'run-02']:
         RMS, median, maxim, descr = [], [], [], []
         for sequ in sequs:
@@ -177,12 +157,9 @@ if plot:
             descr.append(sequ)
             descr.append(sequ)
 
-        #if mot == 'NOD':
         if mot == 'run-02':
-            #mot_s = 'SHAKE'
             mot_s = 'run-03'
             RMS_s, median_s, maxim_s, descr_s = [], [], [], []
-            #sequ = 'T1_MPR'
             sequ = 'mprage'
             # find the most recent data:
             file = glob.glob(out_dir+'MotionMetrics_'+mot_s+'/'+sequ+'*.txt')
@@ -205,18 +182,14 @@ if plot:
                 mean_max_s.append(np.mean(maxim_s[i]))
 
             for i in range(len(descr_s)):
-                # if descr[i]=='TRACEW_B0':
-                #    descr[i]='DWI'
                 if descr_s[i] == 'mprage':
                     descr_s[i] = 'T1_MPR'
                 if descr_s[i] == 'flair':
                     descr_s[i] = 'T2_FLAIR'
                 if descr_s[i] == 't2tse':
                     descr_s[i] = 'T2_TSE'
-                # if descr[i]=='T1_TIRM':
                 if descr_s[i] == 't1tirm':
                     descr_s[i] = 'T1_STIR'
-                # if descr[i]=='T2STAR':
                 if descr_s[i] == 't2star':
                     descr_s[i] = 'T2*'
 
@@ -232,8 +205,6 @@ if plot:
         for i in range(int(len(RMS)/2)):
             colors.append('tab:orange')
             colors.append('tab:blue')
-            #labels.append('MOCO_OFF')
-            #labels.append('MOCO_ON')
             labels.append('without PMC')
             labels.append('with PMC')
         small = dict(markersize=3)
@@ -242,8 +213,6 @@ if plot:
         # change 'TIRM' into STIR for descr:
         # change 'TRACEW_B0' to 'DWI'
         for i in range(len(descr)):
-            #if descr[i]=='TRACEW_B0':
-            #    descr[i]='DWI'
             if descr[i]=='mprage':
                 descr[i] = 'T1_MPR'
             if descr[i] == 'flair':
@@ -259,7 +228,6 @@ if plot:
 
 
 
-        #if mot=='STILL':
         if mot=='run-01':
             fig_title = 'STILL'
             plt.figure(figsize=(10,10))
@@ -271,7 +239,6 @@ if plot:
         MakeBoxplot(RMS, colors)
         for i in range(len(mean_RMS)):
             plt.plot(i+1, mean_RMS[i], '.', c=colors[i], ls='')
-        #if mot=='STILL':
         if mot=='run-01':
             for y1, y2 in zip(RMS[2], RMS[3]):
                     plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
@@ -284,25 +251,22 @@ if plot:
         plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
         lim = plt.gca().get_ylim()
         plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
-        #if mot=='STILL':
         if mot=='run-01':
             use = 0
             low = -1
-        #if mot == 'NOD':
         if mot == 'run-02':
             use = 1
             low = -4
 
         max_RMS = [np.amax(RMS[i]) for i in range(len(RMS))]
-        #if mot=='STILL':
         if mot=='run-01':
-            #Show_Stars(p_values_cor_still[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS) # skal [0,6] rettes til [0,5] pga. vi ikke har diff med
+            #Show_Stars(p_values_cor_still[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS) # DIFF
             Show_Stars(p_values_cor_still[0:5], ind_p, np.arange(1, len(RMS) + 1), max_RMS)
 
 
             plt.subplot(3,1,2)
         else:
-            #Show_Stars(p_values_cor_nod[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS)
+            #Show_Stars(p_values_cor_nod[0:6], ind_p, np.arange(1, len(RMS)+1), max_RMS) # DIFF
             Show_Stars(p_values_cor_nod[0:5], ind_p, np.arange(1, len(RMS) + 1), max_RMS)
 
             ax2=plt.subplot2grid((3,5), (1,0), colspan=4)
@@ -310,7 +274,6 @@ if plot:
         MakeBoxplot(median, colors)
         for i in range(len(mean_RMS)):
             plt.plot(i+1, mean_med[i], '.', c=colors[i], ls='')
-        #if mot=='STILL':
         if mot=='run-01':
             for y1, y2 in zip(median[2], median[3]):
                     plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
@@ -322,13 +285,12 @@ if plot:
         plt.ylim(lim[0],(lim[1]-lim[0])*1.2+lim[0])
 
         max_med = [np.amax(median[i]) for i in range(len(RMS))]
-        #if mot=='STILL':
         if mot=='run-01':
-            #Show_Stars(p_values_cor_still[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
+            #Show_Stars(p_values_cor_still[6:12], ind_p, np.arange(1, len(RMS)+1), max_med) # DIFF
             Show_Stars(p_values_cor_still[5:10], ind_p, np.arange(1, len(RMS) + 1), max_med)
             plt.subplot(3,1,3)
         else:
-            #Show_Stars(p_values_cor_nod[6:12], ind_p, np.arange(1, len(RMS)+1), max_med)
+            #Show_Stars(p_values_cor_nod[6:12], ind_p, np.arange(1, len(RMS)+1), max_med) # DIFF
             Show_Stars(p_values_cor_nod[5:10], ind_p, np.arange(1, len(RMS) + 1), max_med)
 
             ax3=plt.subplot2grid((3,5), (2,0), colspan=4)
@@ -337,7 +299,6 @@ if plot:
             plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='', label=labels[i])
         for i in range(2,len(mean_RMS)):
             plt.plot(i+1, mean_max[i], '.', c=colors[i], ls='')
-        #if mot=='STILL':
         if mot=='run-01':
             for y1, y2 in zip(maxim[2], maxim[3]):
                     plt.plot([3,4], [y1, y2], 'gray', lw=0.7)
@@ -347,7 +308,6 @@ if plot:
         plt.xticks(ticks=np.arange(1, len(RMS)+1), labels=descr)
         lim = plt.gca().get_ylim()
         plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
-        #if mot=='STILL':
         if mot=='run-01':
             use = 0
             low = -3
@@ -355,19 +315,17 @@ if plot:
         max_max = [np.amax(maxim[i]) for i in range(len(RMS))]
 
         print('p_values_cor_still: ', p_values_cor_still)
-        #if mot=='STILL':
         if mot=='run-01':
-            #Show_Stars(p_values_cor_still[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
+            #Show_Stars(p_values_cor_still[12:], ind_p, np.arange(1, len(RMS)+1), max_max) # DIFF
             Show_Stars(p_values_cor_still[10:15], ind_p, np.arange(1, len(RMS) + 1), max_max)
         else:
-            #Show_Stars(p_values_cor_nod[12:], ind_p, np.arange(1, len(RMS)+1), max_max)
+            #Show_Stars(p_values_cor_nod[12:], ind_p, np.arange(1, len(RMS)+1), max_max) # DIFF
             Show_Stars(p_values_cor_nod[10:15], ind_p, np.arange(1, len(RMS) + 1), max_max)
 
         plt.legend(loc='upper center', ncol = 2, bbox_to_anchor=(0.5, -0.3), fontsize=11)
 
-        #if mot == 'NOD':
         if mot == 'run-02':
-            fig_title = 'SHAKE' # initially if mot == 'NOD' then title is mot_s = 'SHAKE'
+            fig_title = 'SHAKE'
             ax4=plt.subplot2grid((3,5), (0,4))
             ax1.get_shared_y_axes().join(ax1, ax4)
             MakeBoxplot(RMS_s, colors)

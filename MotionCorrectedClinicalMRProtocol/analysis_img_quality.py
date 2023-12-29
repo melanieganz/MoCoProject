@@ -70,7 +70,6 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
     # Run recon all:
     if recon_all:
         list_sequ = os.listdir(nifti_dir) #returns a list containing the names of the entries in the directory given by path
-        sequences = [x for x in list_sequ if x.startswith('TCLMOCO')]   #THIS PROBABLY IS NOT UP TO DATE
         sequences = [x for x in list_sequ if x.endswith('.nii')]
         for seq in sequences:
             if seq.startswith('TCLMOCO_OFF_STILL_T1_MPR_3D_SAG'):
@@ -134,8 +133,8 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
             bm = nib.load(bm_file).get_fdata().astype(np.uint16)
 
 
-            sh = np.shape(img) #dimensions of image
-            sl_dir = np.argmin(sh) #here we figure out which axis/dimension is smallest
+            sh = np.shape(img)
+            sl_dir = np.argmin(sh)
 
             slice_dim = sl_dir
             indx = [slice(None)]*img.ndim
@@ -143,9 +142,9 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 
             indx[slice_dim] = int(sh[sl_dir]/2)
 
-            plt.subplot(2,4,i) #create plot for each patient
-            plt.imshow(np.squeeze(img[tuple(indx)]), cmap='gray')  #np.squeeze makes us go from shape (1, 256, 256) to shape (256, 256)
-            plt.imshow(np.squeeze(bm[tuple(indx)]), cmap='Reds', alpha=0.4)  #--
+            plt.subplot(2,4,i)
+            plt.imshow(np.squeeze(img[tuple(indx)]), cmap='gray')
+            plt.imshow(np.squeeze(bm[tuple(indx)]), cmap='Reds', alpha=0.4)
             plt.axis('off')
             plt.title('Brainmask '+tag, fontsize = 10)
             i+=1
@@ -175,10 +174,10 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 
                 test = filename.find(tag)
                 if test > 0:
-                    newpath = tmp + '/' + tag #Create folders if they don't already exist
+                    newpath = tmp + '/' + tag
                     if not os.path.exists(newpath):
                         os.makedirs(newpath)
-                    shutil.move(all_img[i], tmp + '/' + tag + '/' + filename) #move images to correct directory
+                    shutil.move(all_img[i], tmp + '/' + tag + '/' + filename)
                     test = 1
             if test == 0:
                 print('ERROR: Filename ' + filename + ' does not contain the right sequence type description')
@@ -190,15 +189,13 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
                 img_mov = glob.glob(outDir + tag + '/' +'*_moved.nii')
                 check = 0
                 for file in img_mov:
-                    #test = file.find('TCLMOCO_OFF_STILL_')   #Update to new name
-                    test = all(fnmatch.fnmatch(file, f"*{keyword}*") for keyword in ['pmcoff', 'run-01'])
+                    test = all(fnmatch.fnmatch(file, f"*{keyword}*") for keyword in ['pmcoff', 'run-01']) #Update to new name
                     if test > 0:
                         ref_file = file
                         check = 1
                 if check == 0:
                     print('ERROR: no reference Scan in ' + tag)
-        
-                #bm_mov = glob.glob(bm_dir+'bm_mov_*'+tag+'*.nii')[0]
+
                 bm_mov = glob.glob(bm_dir + '*' + tag + '*.nii')[0]
 
                 Comp_All_Metrics(img_mov, bm_mov, ref_file, outDirMetrics, save, tag)
@@ -211,36 +208,11 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 ''' (1) Run analysis on prospectively corrected and uncorrected data:'''
 # define specific input parameters for the current run:
 
-
-
-# DEBUG - for now only run with one subject
-#sub = 'sub-02'
-
 #Paths should be changed into a loop once we run for all subjects 
 root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 # Path on Windows laptop '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 # Path on Unix laptop '/home/melanie/Data/ds004332-download/'
 
-# Testing Path (Puk)
-root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
-#root = '/home/ds004332-download/' #Nyeste openneuro download
-
-
-#nifti_dir = root+sub+'/anat/'
-#bm_dir = root+'derivatives/freesurfer/'+sub+'/anat/'
-#reg_dir = root+'derivatives/freesurfer/'+sub+'/transforms/'
-#SUBJECTS_DIR = root +'derivatives/freesurfer/'+sub+'/transforms/'
-#outDir = root+'derivatives/results/registrations/'+sub+'/'
-#outDirMetrics = root+'derivatives/results/metricsresults/'+sub+'/'
-
-# Original folder structure
-#for sub in subjs:
-    #nifti_dir = '../BIDSdata_defaced/'+sub+'/'
-    #bm_dir = '../Brainmasks/'+sub+'/'
-    #reg_dir = '../RegistrationTransforms/'+sub+'/'
-    #SUBJECTS_DIR = '../Results/Data_Recon_All/'
-    #outDir = '../Results/Registrations/'+sub+'/'
-    #outDirMetrics = '../Results/Metrics_Results/'+sub+'/'
 
 save = '2023_06_08'
     
@@ -255,16 +227,10 @@ recon_all = False
 register = False
 apply_transform_bm = False
     
-# steps to basically always perform
+# steps to always perform
 apply_transform = True
 metrics = True
 show_bm_reg = False
-
-#Run the function
-#FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
-
-
-
 
 
 #Run on all subjects:
@@ -278,20 +244,15 @@ for i in range(20,23):
     subjs.append('sub-'+str(i))
 
 
-for sub in subjs: #Ret dette tilbage- Pycharm lukkede før den kørte færdig
-    print('Initiating FullAnalysis for', sub)
-    root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
-#
+for sub in subjs:
+
     nifti_dir = root + sub + '/anat/'
     bm_dir = root + 'derivatives/freesurfer/' + sub + '/anat/'
     reg_dir = root + 'derivatives/freesurfer/' + sub + '/transforms/'
     SUBJECTS_DIR = root + 'derivatives/freesurfer/' + sub + '/transforms/'
-    outDir = root + 'results/registrations/' + sub + '/'
-    #outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
-    outDirMetrics = root + 'results/metricsresults/' + sub + '/'
-
+    outDir = root + 'derivatives/results/registrations/' + sub + '/'
+    outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
 
     FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
-    print('Finalized FullAnalysis for', sub)
 
 

@@ -4,66 +4,47 @@ import subprocess
 import os
 import datetime
 import glob
-#from recon_register import Run_Recon_All_Again, Run_Long_Stream # The Run_Recon_All_Again does not exist in the recon_register script.
 from recon_register import Run_Long_Stream
 from utils import SortFiles
 
-run_RR = True # svarer til wore
-run_no_RR = False   #svarer til wre
+run_RR = True
+run_no_RR = False
 run_long = False
 
 names = []
 for i in range(1,10):
-    #names.append('Subject_0'+str(i)+'/')
     names.append('sub-0'+str(i)+'/')
 for i in range(10,20):
-    #names.append('Subject_'+str(i)+'/')
     names.append('sub-'+str(i)+'/')
 for i in range(20,23):
-    #names.append('Subject_'+str(i)+'/')
     names.append('sub-'+str(i)+'/')
-    
-print('names ', names)
+
 ''' (1)  Run ReconAll for the motion RR scans in order to compare freesurfer estimates'''
 
 if run_RR == True:
     for name in names:
         # define directories: 
-        #nifti_dir = '../BIDSdata_defaced/'+name+'/'
-        nifti_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'+name+'anat/'
-        
-        
-            
-        list_sequ = os.listdir(nifti_dir)
-        #sequences = [x for x in list_sequ if x.startswith('TCLMOCO')] #TCLMOCO var i starten af alle filerne.
-        sequences = [x for x in list_sequ if x.startswith('sub')]
-        print('sequences : ', sequences)
+        nifti_dir = '../BIDSdata_defaced/'+name+'/'
 
-        
-        # check that nifti directory exists, otherwise make a new nifti directory 
-        # for this subject: 
+        list_sequ = os.listdir(nifti_dir)
+        sequences = [x for x in list_sequ if x.startswith('sub')]
+
         if not os.path.exists(nifti_dir):
             os.makedirs(nifti_dir)
         
         
         for seq in sequences:
-            #if 'T1_MPR' not in seq:
             if 'mprage' not in seq:
                 continue
-            #dcm = os.listdir(nifti_dir + seq)[0]
-            #in_volume = dicom_dir + seq + '/' + dcm
-            #out_volume = nifti_dir + 'TCL'+name+'_' + seq + '.nii'
             out_volume = nifti_dir + seq
-            #if seq.startswith('TCLMOCO_OFF_STILL_T1_MPR'):
             if 'mpragepmcoff*run-01' in seq:
                 continue
             
-            print('so far so good')
+
             # Run recon all:
             descr = ['ON_STILL_', 'ON_NOD_', 'ON_SHAKE_', 'OFF_NOD_', 'OFF_SHAKE_']
             descr = []
-            for d in descr:        
-                #if d+'T1_MPR' in seq:
+            for d in descr:
                 if 'mprage' + d in seq:
                     if d == 'ON_STILL_':
                         subj_id = 'X_'+d+name
@@ -73,8 +54,7 @@ if run_RR == True:
                         else:
                             print('No RR scan for ', d)
                             continue
-        
-                    print(subj_id)
+
                     if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/'+subj_id):
                         continue
                 
@@ -92,14 +72,9 @@ if run_RR == True:
 if run_no_RR:
     for name in names:
         # define directories:
-        #dicom_dir = '/mnt/mocodata1/Data_Analysis/DICOMS/'+name+'/'   
-        #nifti_dir = '../BIDSdata_defaced/'+name+'/'
-        nifti_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/' + name + 'anat/'
-        
-        
+        nifti_dir = '../BIDSdata_defaced/' + name + 'anat/'
             
         list_sequ = os.listdir(nifti_dir)
-        #sequences = [x for x in list_sequ if x.startswith('TCLMOCO')]
         sequences = [x for x in list_sequ if x.startswith('sub')]
         
         # check that nifti directory exists, otherwise make a new nifti directory 
@@ -109,11 +84,9 @@ if run_no_RR:
         
         
         for seq in sequences:
-            #if 'T1_MPR' not in seq:
             if 'mprage' not in seq:
                 continue
-            #dcm = os.listdir(dicom_dir + seq)[0]
-            #in_volume = dicom_dir + seq + '/' + dcm
+
             out_volume = nifti_dir +'TCL'+name[:-1]+'_' + seq + '.nii'
             if seq.startswith('TCLMOCO_OFF_STILL_T1_MPR'):
                 continue
@@ -125,8 +98,7 @@ if run_no_RR:
             for d in descr:
                 if d in seq and 'RR' not in seq:
                     subj_id = 'X_'+d+name
-                    
-                    print(subj_id, out_volume)
+
             
                     if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/'+subj_id):
                         continue
