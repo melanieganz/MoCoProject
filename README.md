@@ -29,7 +29,7 @@ MRI reconstruction challenge with realistic noise, first round associated with M
 You can read more about the challenge [here](https://realnoisemri.grand-challenge.org/). Fully anonymized data (BIDSified image data and motion tracking files) are available on [OpenNeuro](https://openneuro.org/datasets/ds004332). Raw data in ISMRM-RD format can be shared upon signing teh Open Brain consent and upon request - please e-mail mganz@nru.dk. 
 
 ### Kom med i scanneren - mobile phone app
-In order to see the freely availale code for the "Kom med i scanneren" - mobile phone app, please visit this [repo](https://github.com/melanieganz/Borneriget_MRI)
+In order to get access to or be able to re-build the freely available code for the "Kom med i scanneren" - mobile phone app, please have a look at the ReadMe [here](./KomMedIScanneren/README.md).
 
 ### ChildrenHeadMotionABCD:
 Head motion is one of the major reasons for artefacts in Magnetic Resonance Imaging (MRI), which is especially challenging for children who are often intimidated by the dimensions of the MR scanner. To optimize the MRI acquisition for children in the clinical setting, insights into children's motion patterns are essential. The ABCD study is the largest long-term study of brain development and child health in the United States. The National Institutes of Health (NIH) funded leading research in adolescent development and neuroscience to conduct this ambitious project. The ABCD Research Consortium comprises a Coordinating Center, a Data Analysis, Informatics & Resource Center, and 21 research sites across the United States, inviting 11,880 children ages 9-10 to join the study. Understanding the prevalence and degree of head motion in children can help guide the development of motion correction techniques for MRI. The project aims to analyse the motion logs from the diffusion imaging and functional MRI series of the ABCD study to understand how far a typical child moves during scanning, analyse correlations between motion parameters and assess the rank of the combined motion matrices. 
@@ -38,4 +38,5 @@ Finally, the motion will also be compared to the motion pattern exhibited by chi
 ## Data
 ### Datasets with and without deliberate head movements for evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI
 We are sharing 22 datasets with and without deliberate head movements that were used in the projects on ImageQualityMetrics, MotionCorrectedClinicalMRProtocol and the RealNoiseMRI challenge publically on [OpenNeuro](https://openneuro.org/datasets/ds004332). The dataset consists of fully anonymized data (BIDSified image data and motion tracking files). Raw data in ISMRM-RD format can be shared upon signing the Open Brain consent and upon request - please e-mail mganz@nru.dk.
+
 
