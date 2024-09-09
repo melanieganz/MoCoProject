@@ -29,8 +29,7 @@ MRI reconstruction challenge with realistic noise, first round associated with M
 You can read more about the challenge [here](https://realnoisemri.grand-challenge.org/). Fully anonymized data (BIDSified image data and motion tracking files) are available on [OpenNeuro](https://openneuro.org/datasets/ds004332). Raw data in ISMRM-RD format can be shared upon signing teh Open Brain consent and upon request - please e-mail mganz@nru.dk. 
 
 ### Kom med i scanneren - mobile phone app
-In order to see the freely availale code for the "Kom med i scanneren" - mobile phone app, please visit this [repo](https://github.com/melanieganz/Borneriget_MRI)
-
+In order to get access to or be able to re-build the freely available code for the "Kom med i scanneren" - mobile phone app, please have a look at the ReadMe [here](./KomMedIScanneren/README.md).
 
 ## Data
 ### Datasets with and without deliberate head movements for evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI
