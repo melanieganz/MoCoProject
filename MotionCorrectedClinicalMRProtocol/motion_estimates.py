@@ -5,6 +5,7 @@ import pydicom
 import glob
 import json
 import datetime as dt
+import os
 from transforms3d.affines import decompose
 from transforms3d.euler import mat2euler
 
@@ -20,7 +21,7 @@ ScanTimes = {'STILL_T1_MPR':np.array([4,40]), 'NOD_T1_MPR':np.array([5,12]),
              #'STILL_DIFF':np.array([0,42]), 'NOD_DIFF':np.array([0,42])} # DIFF
 
 
-root = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'
+root = os.environ.get("MOCO_DATASET_PATH")
 
 
 def ParametersFromTransf(A):
@@ -366,9 +367,7 @@ def GetTimeFromTxt(sub, name):
     
     #find the file with the corresponding scan scart:
     sequ = name.split('*')[0]
-
-    file = '../TCLData/ScanEndTimes_'+sequ+'07_30.txt'
-
+    file = os.path.join(root, 'source/ScanEndTimes_'+sequ+'_07_30.txt')
 
     # search for sub and name:
 

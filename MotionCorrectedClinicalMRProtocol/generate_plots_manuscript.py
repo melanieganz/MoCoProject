@@ -12,15 +12,17 @@ plt.style.use('seaborn-whitegrid')
 matplotlib.rc('axes', edgecolor='black')
 from matplotlib.ticker import ScalarFormatter
 
-out_dir = '../Results/Plots/'
+root = os.environ.get("MOCO_DATASET_PATH")
 
-in_dir_mot = '../Results/Motion_Estimates/'
+out_dir = os.path.join(root, "derivatives/results/plots")
 
-in_dir_met = '../Results/Metrics_Results/'
+in_dir_mot = os.path.join(root, "derivatives/results/Motion_Estimates")
 
-in_dir_qs = '../ObserverQualityScores/'
+in_dir_met = os.path.join(root, "derivatives/results/metricsresults/")
 
-out_dir_metrics = '../Results/Metrics_Results/Comparison/'
+in_dir_qs =  os.path.join(root, "derivatives/results/observer_scores_old")
+
+out_dir_metrics = os.path.join(root, "derivatives/results/Metrics_Results/Comparison/")
 
 
 subdir = []
@@ -436,6 +438,8 @@ for sequ in sequs:
 
     names = np.tile(names, (n,1))
 
+    np.savetxt("./qs_output", qs)
+
 
     #check that names are the same for all volunteers:
     #for i in range(1, len(subdir)):
@@ -637,8 +641,7 @@ if plot_still:
             ticks = [1.5, 3.5, 5.5, 7.5, 9.5] # when DIFF added, add 11.5 to list
             plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
 
-        plt.show()
-
+            plt.show()
 
         elif i == 1:
             ax = plt.subplot2grid((2,6), (1,0), colspan=4)

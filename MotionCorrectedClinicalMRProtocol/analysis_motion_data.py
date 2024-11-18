@@ -12,9 +12,11 @@ from statistical_tests import PerformWilcoxonMotion
 
 
 # Define directories, sequences and volunteers to analyse:
-out_dir = '../Results/Motion_Estimates/'
 
-root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
+root = os.environ.get("MOCO_DATASET_PATH")
+out_dir = os.path.join(root, "derivatives/results/Motion_Estimates")
+print(f"root: {root}")
+print(f"out_dir: {out_dir}")
 
 
 subdir = [] 
