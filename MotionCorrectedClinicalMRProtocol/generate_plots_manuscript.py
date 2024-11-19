@@ -8,19 +8,22 @@ import nibabel as nib
 from statsmodels.stats.multitest import multipletests
 from utils import Show_Stars, SortFiles, MakeBoxplot, DrawLines2, DrawLines
 from statistical_tests import PerformWilcoxonMotion, PerformWilcoxonAllImg
-plt.style.use('seaborn-whitegrid')
+import seaborn as sns
+sns.set_style("whitegrid")
+#plt.style.use('seaborn-whitegrid')
 matplotlib.rc('axes', edgecolor='black')
 from matplotlib.ticker import ScalarFormatter
+import pandas as pd
 
 root = os.environ.get("MOCO_DATASET_PATH")
 
 out_dir = os.path.join(root, "derivatives/results/plots")
 
-in_dir_mot = os.path.join(root, "derivatives/results/Motion_Estimates")
+in_dir_mot = os.path.join(root, "derivatives/results/Motion_Estimates/")
 
 in_dir_met = os.path.join(root, "derivatives/results/metricsresults/")
 
-in_dir_qs =  os.path.join(root, "derivatives/results/observer_scores_old")
+in_dir_qs =  os.path.join(root, "derivatives/observer_scores")
 
 out_dir_metrics = os.path.join(root, "derivatives/results/Metrics_Results/Comparison/")
 
@@ -256,7 +259,9 @@ if plot_motion:
         if mot == 'run-02':
             ax4=plt.subplot2grid((4,5), (2,4))
             ax = ax4
-            ax1.get_shared_y_axes().join(ax1, ax4)
+            ax1.sharey(ax1)
+            ax4.sharey(ax1)
+            #ax1.get_shared_y_axes().join(ax1, ax4)
             MakeBoxplot(RMS_s, colors)
             for i in range(len(mean_RMS_s)):
                 plt.plot(i+1, mean_RMS_s[i], '.', c=colors[i], ls='')
@@ -274,7 +279,9 @@ if plot_motion:
             
             ax5=plt.subplot2grid((4,5), (3,4))
             ax = ax5
-            ax2.get_shared_y_axes().join(ax2, ax5)
+            ax2.sharey(ax2)
+            ax5.sharey(ax2)
+            #ax2.get_shared_y_axes().join(ax2, ax5)
             
             MakeBoxplot(maxim_s, colors)
             for i in range(0,2):
@@ -311,6 +318,12 @@ show_stat_test = True
 
 sequs = ['mprage', 'flair', 't2tse', 't1tirm', 't2star']
 
+bids_seq_to_observer_score_map = {
+    "mprage": "acq-mprage_T1w.tsv",
+    "flair":  "acq-flair_FLAIR.tsv",
+    "t2tse":  "acq-t2tse_T2w.tsv",
+    "t1tirm": "acq-t1tirm_T1w.tsv",
+}
 
 
 ssims, psnrs, tgs, qss, names_tes = [], [], [], [], []
@@ -379,32 +392,27 @@ for sequ in sequs:
             
             # do the same for quality scores:
             if sequ not in ['t2star']:
-                file = glob.glob(in_dir_qs+sequ+' Score.txt')
+                file = glob.glob(os.path.join(in_dir_qs, bids_seq_to_observer_score_map[sequ]))
                 if len(file)>0:
                     # get the most recent file:
                     file = SortFiles(file)
-                    
-                    subj_names = np.loadtxt(file[0], unpack=True, dtype=str, usecols=0,
-                                            skiprows=1)
-                    tmp1 = np.loadtxt(file[0], unpack=True, dtype=str, usecols=1,
-                                            skiprows=1)
-                    tmp2, tmp3, tmp4 = np.loadtxt(file[0], unpack=True, usecols=(2,3,4),
-                                                  skiprows=1)
-                    
-                    tmp1 = tmp1[subj_names==sub[:-1]]
-                    tmp2 = tmp2[subj_names==sub[:-1]]
-                    tmp3 = tmp3[subj_names==sub[:-1]]
-                    tmp4 = tmp4[subj_names==sub[:-1]]
-                
+
+                    scores_df = pd.read_csv(file[0], delimiter='\t')
+                    scores_df : pd.DataFrame = scores_df[scores_df["participant_id"] == sub[:-1]]
+
                     incl = []
-                    for na,q1,q2,q3 in zip(tmp1, tmp2, tmp3, tmp4):
+                    for _, (_, i_seq, q1,q2,q3) in scores_df.iterrows():
                         if 'RETRO' not in na:
-                            ind = np.where(names == na)[0][0]
+                            # filter name to match previously decided prefixes in 'names'
+                            cut_seq = "_".join(i_seq.replace(f"acq-{sequ}", "").split("_")[:-1])
+                            ind = np.where(names == cut_seq)[0][0]
                             # average the scores of the three raters with double weight for the radiologist
                             qs[i,ind] = (q1+q2+2*q3)/4
                             incl.append(ind)
+                else:
+                    raise Exception(f"Error: Observer Score {os.path.join(in_dir_qs, bids_seq_to_observer_score_map[sequ])} not found")
                     
-                
+                print(f"qs: {qs}")
                             
             # for DWI quality ranks instead of quality scores:                # DIFF
             #elif sequ == 'TRACEW_B1000':
@@ -437,8 +445,6 @@ for sequ in sequs:
             i+=1
 
     names = np.tile(names, (n,1))
-
-    np.savetxt("./qs_output", qs)
 
 
     #check that names are the same for all volunteers:
