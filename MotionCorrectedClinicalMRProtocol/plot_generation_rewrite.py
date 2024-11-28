@@ -8,7 +8,13 @@ from statistical_tests import PerformWilcoxonMotion, PerformWilcoxonAllImg, Perf
 from functools import reduce
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
+import seaborn as sns
+import matplotlib
 
+
+sns.set_style("whitegrid")
+#plt.style.use('seaborn-whitegrid')
+matplotlib.rc('axes', edgecolor='black')
 
 
 
@@ -34,6 +40,7 @@ bids_seq_to_observer_score_map = {
 dwi_sequence = "dwi"
 dwi_filename = "dwi.tsv"
 
+GT_STILL_IMAGE_SUBSEQUENCE = "pmcoff_rec-wore_run-01"
 
 
 def read_scores():
@@ -86,8 +93,6 @@ def read_dwi_rank():
     rank_df.rename({"participant_id": "subject"}, inplace=True, axis=1)
 
     return rank_df
-    
-
 
 def read_image_metrics():
     seq_to_img_metrics = {}
@@ -118,16 +123,19 @@ def read_image_metrics():
 
             img_metrics_df = pd.concat([img_metrics_df, pd.DataFrame.from_dict(metrics)])
 
+            # normalise tg values by dividing with mean value of off still
+        print(f"{seq}: {img_metrics_df}")
+        mean_still_tg = img_metrics_df.groupby("sub_sequence").agg({"tg" : "mean"}).loc[GT_STILL_IMAGE_SUBSEQUENCE]
+        img_metrics_df["tg"] = img_metrics_df["tg"].apply(lambda tg: tg / mean_still_tg)
+
         
         seq_to_img_metrics[seq] = img_metrics_df
     return seq_to_img_metrics
 
 # contains df of all subjects and subsequences with metric scores, contained in a map by sequence (MPR, FLAIR, etc.)
-seq_to_img_metrics = read_image_metrics()
-_, seq_to_observer_scores_df = read_scores()
-dwi_rank_df = read_dwi_rank()
 
-def calculate_p_values_observer_scores(relevant_subsequences):
+
+def calculate_p_values_observer_scores(relevant_subsequences, seq_to_observer_scores_df):
     seq_to_observer_scores_p_values = {}
 
     for seq, observer_scores_df in seq_to_observer_scores_df.items():
@@ -141,7 +149,7 @@ def calculate_p_values_observer_scores(relevant_subsequences):
     return seq_to_observer_scores_p_values
 
 
-def calculate_p_values_observer_rank(relevant_subsequences):
+def calculate_p_values_observer_rank(relevant_subsequences, dwi_rank_df):
 
     relevant_subsequence_ranks = dwi_rank_df.groupby("sub_sequence").agg(list).loc[relevant_subsequences]
     ranks_arr = np.array(relevant_subsequence_ranks["rank"].to_list()).T
@@ -150,16 +158,32 @@ def calculate_p_values_observer_rank(relevant_subsequences):
 
     return dict(zip([tuple(relevant_subsequences)] * len(p_qs), p_qs))
 
+def calculate_p_values_image_metrics(relevant_subsequences, seq_to_img_metrics):
+    metric_to_seq_to_p_values = {}
+
+    for metric in ("tg", "ssim", "psnr"):
+        seq_to_p_values = {}
+        for seq, image_metric_df in seq_to_img_metrics.items():
+            grouped_df = image_metric_df.groupby("sub_sequence").agg(list)
+
+            relevant_subsequence_metrics = grouped_df.loc[relevant_subsequences]
+            metric_arr = np.array(relevant_subsequence_metrics[metric].to_list()).T
+            p_qs, rej_qs, ind_p, alt = PerformWilcoxonAllImg_custom_indices(metric.upper(), metric_arr, seq, out_dir_metrics, save, ind=[[0, 1]])
+
+            seq_to_p_values[seq] = dict(zip([tuple(relevant_subsequences)] * len(p_qs), p_qs))
+
+        metric_to_seq_to_p_values[metric] = seq_to_p_values
+    return metric_to_seq_to_p_values
 
 
+def draw_boxplot_images(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_subsequences):
+    seq_to_observer_scores_p_values = calculate_p_values_observer_scores(relevant_subsequences, seq_to_df)
 
-
-def draw_boxplot_images(seq_to_df, relevant_subsequences):
-    seq_to_observer_scores_p_values = calculate_p_values_observer_scores(relevant_subsequences)
+    image_metrics_p_values = calculate_p_values_image_metrics(relevant_subsequences, seq_to_img_metrics)
 
     # removing reacquisition from subsequences since it was not part of DWI
     dwi_subsequences = ["_".join([subs.split("_")[0]] + [subs.split("_")[2]]) for subs in relevant_subsequences]
-    dwi_p_values = calculate_p_values_observer_rank(dwi_subsequences)
+    dwi_p_values = calculate_p_values_observer_rank(dwi_subsequences, dwi_rank_df)
 
     labels = ['Tenengrad', 'Observer Scores', 'Quality Rank']
     colors = ['tab:orange', 'tab:blue', 'tab:orange', 'tab:blue', 'tab:orange', 
@@ -172,7 +196,55 @@ def draw_boxplot_images(seq_to_df, relevant_subsequences):
     x_axis_odd_range = np.arange(1, 12, 2)
 
 
+    def draw_tenengrad_image_metric():
+        relevant_metrics_for_sequence = []
+        means = []
+        for seq in sequs:
+            df : pd.DataFrame = seq_to_img_metrics[seq]
+            df = df[df["sub_sequence"].isin(relevant_subsequences)]
+            relevant_metrics_for_sequence += [df[df["sub_sequence"] == subseq]["tg"].to_numpy() for subseq in relevant_subsequences]
+            means += df.groupby("sub_sequence").agg({"tg": "mean"})["tg"].to_list()
 
+
+        ax = plt.subplot2grid((2,6), (0,0), colspan=6)
+        box1 = plt.boxplot(relevant_metrics_for_sequence, flierprops=small)
+        for j in range(len(means)):
+            plt.errorbar(x_axis_range[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
+        ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*']
+        ticks = [1.5, 3.5, 5.5, 7.5, 9.5] # when DIFF added, add 11.5 to list
+        plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
+
+        for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors):
+            patch.set(color=color, lw=1.7)
+            patch2.set(color='k', lw=1.7)
+        
+        def draw_p_values(relevant_subsequences, relevant_metric_for_sequence):
+
+            def draw_stars(m_still, p_values):
+                maxi = []
+                for v in m_still:
+                    maxi.append(np.amax(v))
+
+                indices = [[0,1], [2,3], [4,5], [6,7], [8,9]]
+                Show_Stars(np.array(p_values), indices[0:len(p_values)], x_axis_range, maxi,
+                            col='black')
+
+            def draw_lines(m_still, p_values):
+                DrawLines2(x_axis_even_range[0:len(p_values)],x_axis_odd_range[0:len(p_values)], x_axis_odd_range[0:len(p_values)],
+                        x_axis_even_range[1:len(p_values) + 1], m_still, lw=0.7, col='darkslategray')
+            
+            p_values = [x for p_vals in image_metrics_p_values["tg"].values() for x in list(p_vals.values())]
+            print(f"p_values {p_values}")
+            print(f"relevant_metric_for_sequence: {relevant_metric_for_sequence}")
+            draw_stars(relevant_metric_for_sequence, p_values)
+            draw_lines(relevant_metric_for_sequence, p_values)
+
+        draw_p_values(relevant_subsequences, relevant_metrics_for_sequence)
+        
+        plt.ylabel("Tenengrad", fontsize=15)
+        plt.yticks(fontsize=13)
+        plt.tick_params('both', length=0)
+        plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
     
 
 
@@ -233,7 +305,7 @@ def draw_boxplot_images(seq_to_df, relevant_subsequences):
 
 
         plt.yticks(ticks=[2.5, 3, 3.5, 4, 4.5, 5])
-        ax.text(-0.6, 0.95, string.ascii_lowercase[1],
+        ax.text(-0.2, 0.95, string.ascii_lowercase[1],
                     transform=ax.transAxes, size=24, weight='bold')
     
     def draw_rank(relevant_subsequences):
@@ -269,11 +341,12 @@ def draw_boxplot_images(seq_to_df, relevant_subsequences):
         plt.yticks(fontsize=13)
         plt.tick_params('both', length=0)
         plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
-        ax.text(-0.1, 0.95, string.ascii_lowercase[2],
+        ax.text(-1, 0.95, string.ascii_lowercase[2],
                     transform=ax.transAxes, size=24, weight='bold')
 
     plt.figure(figsize=(10,9))
 
+    draw_tenengrad_image_metric()
     draw_observer_scores()
     draw_rank(dwi_subsequences)
 
@@ -288,7 +361,11 @@ def draw_boxplot_images(seq_to_df, relevant_subsequences):
 
 # still plot
 relevant_subsequences_plot_1 = ["pmcoff_rec-wore_run-01", "pmcon_rec-wore_run-01"]
+seq_to_img_metrics = read_image_metrics()
+_, seq_to_observer_scores_df = read_scores()
+dwi_rank_df = read_dwi_rank()
+
+draw_boxplot_images(seq_to_img_metrics, seq_to_observer_scores_df, dwi_rank_df, relevant_subsequences_plot_1)
 
 
-draw_boxplot_images(seq_to_observer_scores_df, relevant_subsequences_plot_1)
-    
+

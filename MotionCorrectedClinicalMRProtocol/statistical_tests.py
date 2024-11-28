@@ -91,9 +91,84 @@ def PerformWilcoxonMotion(type_metric, motion, values_metrics, out_dir, save, op
        
     return p_values, ind, alt, ES
 
+def PerformWilcoxonAllImg_custom_indices(type_metric, values, sequ, out_dir, save, option=False, ind=[]):
+    '''
+    Performs wilcoxon signed rank test for metrics claculated on all 
+    propsectively corrected and uncorrected images.
 
+    Parameters
+    ----------
+    type_metric : str
+        description of metric for saving p-values.
+    values : array
+        values of the metric for which the test should be performed.
+    sequ : str
+        description / abbr. of the sequence.
+    option : str, optional
+        If option is 'qs', then tests are performed on the quality scores.
+        If option is 'diff', then indices are adjusted accordingly.
+        The default is False.
 
-def PerformWilcoxonAllImg(type_metric, values, sequ, out_dir, save, option=False):
+    Returns
+    -------
+    p_values : array
+        result of the tests.
+    rej : array
+        output of FDR correction - whether the hypothesis should be rejected or not.
+    ind : array
+        indices indicating which columns of values are compared.
+    alt : array or string
+        describing the alternative used for the test.
+
+    '''
+
+    text =  ['Tests '+type_metric+': ']
+    p_values = []
+
+        
+    altern = 'two-sided' 
+    
+    #if type_metric=='QS' and sequ == 'T2STAR':
+    if type_metric=='QS' and sequ == 't2star':
+        p_values = [0,0]  
+    else:
+        for index in ind:        
+            # sort out nans:
+            values_1 = values[:,index[0]]
+            values_2 = values[:,index[1]]
+            values_1 = values_1[np.logical_not(np.isnan(values_1))]
+            values_2 = values_2[np.logical_not(np.isnan(values_2))]
+            
+            if len(values_1) != len(values_2):
+                print('ERROR: arrays for '+type_metric+' contain different number of NaN elements')
+            
+              
+            if option == 'qs':
+                tmp, p = wilcoxon(values_1, values_2, alternative=altern, zero_method='pratt') # not used anymore!!!
+            else:
+                tmp, p = wilcoxon(values_1, values_2, alternative=altern)
+            text.append(str(index[0])+' '+str(index[1])+' '+altern+': p = '+str(p))
+            p_values.append(p)
+
+    #correct for multiple comparisons:
+    rej, p_values_cor, _, __ = multipletests(p_values, alpha=0.05, method='fdr_bh', is_sorted=False, returnsorted=False)
+    text.append('Corrected p-values')
+    text.append(p_values_cor.astype(str))
+
+    text = np.array(text, dtype=object)
+    #if option == 'diff':
+    #    tmp = out_dir+'ParametricTests/'+sequ+'/Tests_diff_'+type_metric+save+'.txt'
+    #    if not os.path.exists(out_dir+'ParametricTests/'+sequ+'/'):
+    #        os.makedirs(out_dir+'ParametricTests/'+sequ+'/')
+    #    np.savetxt(tmp, text, fmt='%s')
+    #else:
+    #    if not os.path.exists(out_dir+'ParametricTests/'+sequ+'/'):
+    #        os.makedirs(out_dir+'ParametricTests/'+sequ+'/')
+    #    np.savetxt(out_dir+'ParametricTests/'+sequ+'/Tests_'+type_metric+save+'.txt', text, fmt='%s')
+
+    return p_values_cor, rej, ind, altern
+
+def PerformWilcoxonAllImg(type_metric, values, sequ, out_dir, save, option=False, overwrite_indices=None):
     '''
     Performs wilcoxon signed rank test for metrics claculated on all 
     propsectively corrected and uncorrected images.
