@@ -27,6 +27,9 @@ out_dir_metrics = os.path.join(root_dir, "derivatives/results/Metrics_Results/Co
 
 save = '_2022_05_27'
 
+SMALL_MARKER = dict(markersize=3)
+
+
 
 sequs = ['mprage', 'flair', 't2tse', 't1tirm', 't2star']
 
@@ -135,7 +138,7 @@ def read_image_metrics():
 # contains df of all subjects and subsequences with metric scores, contained in a map by sequence (MPR, FLAIR, etc.)
 
 
-def calculate_p_values_observer_scores(relevant_subsequences, seq_to_observer_scores_df):
+def calculate_p_values_observer_scores(relevant_subsequences, seq_to_observer_scores_df, indices=[[0, 1]]):
     seq_to_observer_scores_p_values = {}
 
     for seq, observer_scores_df in seq_to_observer_scores_df.items():
@@ -143,9 +146,9 @@ def calculate_p_values_observer_scores(relevant_subsequences, seq_to_observer_sc
 
         relevant_subsequence_scores = grouped_df.loc[relevant_subsequences]
         scores_arr = np.array(relevant_subsequence_scores["score"].to_list()).T
-        p_qs, rej_qs, ind_p, alt = PerformWilcoxonAllImg_custom_indices('QS', scores_arr, seq, out_dir_metrics, save, ind=[[0, 1]])
+        p_qs, rej_qs, ind_p, alt = PerformWilcoxonAllImg_custom_indices('QS', scores_arr, seq, out_dir_metrics, save, ind=indices)
 
-        seq_to_observer_scores_p_values[seq] = dict(zip([tuple(relevant_subsequences)] * len(p_qs), p_qs))
+        seq_to_observer_scores_p_values[seq] = {tuple(np.array(relevant_subsequences)[indices[i]]): p_q for i, p_q in enumerate(p_qs)}
     return seq_to_observer_scores_p_values
 
 
@@ -190,7 +193,6 @@ def draw_boxplot_images(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_sub
               'tab:blue', 'tab:orange', 'tab:blue', 'tab:orange', 'tab:blue', 
               'tab:orange', 'tab:blue']
     fig_labels = ['without PMC', 'with PMC']
-    small = dict(markersize=3)
     x_axis_range = np.arange(1,13)
     x_axis_even_range = np.arange(0, 13, 2)
     x_axis_odd_range = np.arange(1, 12, 2)
@@ -207,7 +209,7 @@ def draw_boxplot_images(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_sub
 
 
         ax = plt.subplot2grid((2,6), (0,0), colspan=6)
-        box1 = plt.boxplot(relevant_metrics_for_sequence, flierprops=small)
+        box1 = plt.boxplot(relevant_metrics_for_sequence, flierprops=SMALL_MARKER)
         for j in range(len(means)):
             plt.errorbar(x_axis_range[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
         ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*']
@@ -260,7 +262,7 @@ def draw_boxplot_images(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_sub
             means += df.groupby("sub_sequence").agg({"score": "mean"})["score"].to_list()
 
         ax = plt.subplot2grid((2,6), (1,0), colspan=4)
-        box1 = plt.boxplot(relevant_scores_for_sequence, flierprops=small)
+        box1 = plt.boxplot(relevant_scores_for_sequence, flierprops=SMALL_MARKER)
         for j in range(len(means)):
             plt.errorbar(x_axis_range[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
         for j in range(0,2):
@@ -318,7 +320,7 @@ def draw_boxplot_images(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_sub
         print(means)
 
         ax = plt.subplot2grid((2,6), (1,5), colspan=1)
-        box1 = plt.boxplot(relevant_ranks_for_sequence, flierprops=small)
+        box1 = plt.boxplot(relevant_ranks_for_sequence, flierprops=SMALL_MARKER)
         for j in range(len(means)):
             plt.errorbar(x_axis_range[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
         ticklabels = ['DWI']
@@ -391,7 +393,6 @@ def draw_boxplot_2(sequence_to_relevant_subsequences):
                   'prospective MoCo with REAC': 'with PMC with REAC',
                   'no MoCo with REAC':'without PMC with REAC'}
     
-    small = dict(markersize=3)
     x = np.concatenate((np.arange(1,9), np.arange(10,14)), axis=None)
     a = [0,2,4,6] 
     b = [1,3,5,7]
@@ -416,59 +417,50 @@ def draw_boxplot_2(sequence_to_relevant_subsequences):
             if seq == "flair":
                 indices = indices[0:5]
              
-            metrics_to_p_values = calculate_p_values_image_metrics(relevant_subsequences, {k:v for k,v in seq_to_img_metrics.items() if k == seq},
-                                                                   indices=indices)
+            p_values = calculate_p_values_image_metrics(relevant_subsequences, {k:v for k,v in seq_to_img_metrics.items() if k == seq},
+                                                                   indices=indices)[metric][seq]
 
             df : pd.DataFrame = seq_to_img_metrics[seq]
             df = df[df["sub_sequence"].isin(relevant_subsequences)]
 
             relevant_metrics_for_sequence = [df[df["sub_sequence"] == subseq][metric].to_numpy() for subseq in relevant_subsequences]
-            means = df.groupby("sub_sequence").agg({metric: "mean"})[metric].to_list()
+            means = np.mean(relevant_metrics_for_sequence, axis=1)
 
-            ax = plt.subplot(2,2,i+1)
+            ax = draw_subgraph(colors, x, i, positions, 
+                               x_axis_for_lines, indices, p_values,
+                               relevant_metrics_for_sequence, means)
 
-            box1 = plt.boxplot(relevant_metrics_for_sequence, positions=positions, flierprops=small, widths=0.5)
-            for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors):
-                patch.set(color=color, lw=1.5)
-                patch2.set(color='k', lw=1.5)
-
-            for j in range(len(means)):
-                plt.errorbar(x[j], means[j], yerr=None, color=colors[j], fmt='.', 
-                            capsize=3)
-
-            def draw_p_values():
-                maxi = []
-                for v in np.array(relevant_metrics_for_sequence):
-                    maxi.append(np.amax(v))
-                print("metrics_to_p_values", np.array(list(metrics_to_p_values[metric][seq].values())))
-                print(indices)
-                print(x)
-                print(maxi)
-
-                Show_Stars(np.array(list(metrics_to_p_values[metric][seq].values())), 
-                           np.array(indices), x if positions is None else positions, maxi, 
-                        arange_dh='PAPER', col='black')
-                lim = plt.gca().get_ylim()
-                plt.ylim(lim[0],(lim[1]-lim[0])*1.01+lim[0])
-            
-            draw_p_values()
-            DrawLines(*x_axis_for_lines, np.array(relevant_metrics_for_sequence).T, col='darkslategray')
 
             
         
-        plt.ylabel(labels[i], fontsize=15)
+        subplot_settings_plot_2(labels, i, ax)
 
+    # observer scores
+    for seq, positions, x_axis_for_lines in zip(seqs, [None, range(10,14)], [(a,b,c,d), (a_,b_,c_,d_)]):
+        relevant_subsequences = sequence_to_relevant_subsequences[seq]
+        indices = [[0, 1], [2, 3], [0, 3], [0, 2], [1, 3],
+                    [4, 5], [6, 7], [4, 7], [4, 6], [5, 7]
+                    ]
+        if seq == "flair":
+            indices = indices[0:5]
+        
+        p_values = calculate_p_values_observer_scores(relevant_subsequences, 
+                                                                    {k:v for k,v in seq_to_observer_scores_df.items() if k == seq},
+                                                                    indices=indices)[seq]
 
-        ticklabels = ['T1_MPR\nSHAKE', 'T1_MPR\nNOD', 'T2_FLAIR\nNOD']
-        ticks = [2.5, 6.5, 11.5]
-        plt.xticks(labels=ticklabels, ticks=ticks, fontsize=12)
-        ax.text(-0.18, 0.9, string.ascii_lowercase[i], transform=ax.transAxes,
-                size=21, weight='bold')
-        plt.yticks(fontsize=13)
-        plt.tick_params('both', length=0)
-        plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
+        df : pd.DataFrame = seq_to_observer_scores_df[seq]
+        df = df[df["sub_sequence"].isin(relevant_subsequences)]
 
+        # this uses the order of relevant_subsequences, which is important so it matches the graph
+        relevant_metrics_for_sequence = [df[df["sub_sequence"] == subseq]["score"].to_numpy() for subseq in relevant_subsequences]
+        means = np.mean(relevant_metrics_for_sequence, axis=1)
 
+        ax = draw_subgraph(colors, x, 3, positions, x_axis_for_lines,
+                            indices, p_values, relevant_metrics_for_sequence, means)
+    
+    subplot_settings_plot_2(labels, 3, ax)
+    plt.yticks(ticks=[1, 2, 3, 4, 5])
+    
 
     legend = plt.legend( loc='lower left', ncol=2, 
                     bbox_to_anchor=(0.25, -0.4), fontsize=12, 
@@ -477,5 +469,45 @@ def draw_boxplot_2(sequence_to_relevant_subsequences):
 
     plt.subplots_adjust(hspace=0.2, wspace=0.3)
     plt.show()
+
+def subplot_settings_plot_2(labels, i, ax):
+    plt.ylabel(labels[i], fontsize=15)
+
+    ticklabels = ['T1_MPR\nSHAKE', 'T1_MPR\nNOD', 'T2_FLAIR\nNOD']
+    ticks = [2.5, 6.5, 11.5]
+    plt.xticks(labels=ticklabels, ticks=ticks, fontsize=12)
+    ax.text(-0.18, 0.9, string.ascii_lowercase[i], transform=ax.transAxes,
+                size=21, weight='bold')
+    plt.yticks(fontsize=13)
+    plt.tick_params('both', length=0)
+    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
+
+def draw_subgraph(colors, x, i, positions, x_axis_for_lines, indices, p_values, relevant_metrics_for_sequence, means):
+    ax = plt.subplot(2,2,i+1)
+    print(relevant_metrics_for_sequence)
+
+    box1 = plt.boxplot(relevant_metrics_for_sequence, positions=positions, flierprops=SMALL_MARKER, widths=0.5)
+    for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors):
+        patch.set(color=color, lw=1.5)
+        patch2.set(color='k', lw=1.5)
+
+    for j in range(len(means)):
+        plt.errorbar((x if positions is None else positions)[j], means[j], yerr=None, color=colors[j], fmt='.', 
+                            capsize=3)
+
+    def draw_p_values():
+        maxi = []
+        for v in np.array(relevant_metrics_for_sequence):
+            maxi.append(np.amax(v))
+
+        Show_Stars(np.array(list(p_values.values())), 
+                           np.array(indices), x if positions is None else positions, maxi, 
+                        arange_dh='PAPER', col='black')
+        lim = plt.gca().get_ylim()
+        plt.ylim(lim[0],(lim[1]-lim[0])*1.01+lim[0])
+            
+    draw_p_values()
+    DrawLines(*x_axis_for_lines, np.array(relevant_metrics_for_sequence).T, col='darkslategray')
+    return ax
 
 draw_boxplot_2(relevant_subsequences_plot_2)
