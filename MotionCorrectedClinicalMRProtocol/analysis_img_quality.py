@@ -15,7 +15,7 @@ from img_quality_metrics import Comp_All_Metrics            # Python file with s
 import fnmatch
 
 
-def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, 
+def FullAnalysis(sub, nifti_dir, dwi_nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, 
                  recon_all, register, apply_transform, apply_transform_bm, metrics,show_bm_reg):
     
     '''
@@ -111,7 +111,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
         # if you start from scratch and do not want to use the registration 
         # transforms we provide, the following function needs to be changed
         # to load different registration files!
-        applyTransformMRI(nifti_dir, reg_dir, bm_dir, outDir,
+        applyTransformMRI(nifti_dir, dwi_nifti_dir, reg_dir, bm_dir, outDir,
                           apply_transform_bm)
         print('//////////////////////////////////////////////////////')
         print('//                                                  //')
@@ -124,12 +124,16 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
     plt.figure(figsize=(10,7))
     i = 1
 
-    for tag in ['mprage', 'flair', 't2tse', 't1tirm', 't2star']:
-        if len(glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii')) > 0:
+    for tag in ['mprage', 'flair', 't2tse', 't1tirm', 't2star', "TRACEWB1000", "ADC"]:
+        if tag == "TRACEWB1000" or tag =="ADC":
+            base_path = '*run-01*'+f"*desc-{tag}"
+        else:
+            base_path = '*'+tag+'*run-01*'
+        if len(glob.glob(outDir + base_path+'*moved.nii')) > 0:
             print('inside if')
-            img_file = glob.glob(outDir+'*'+tag+'*run-01*'+'*moved.nii')[0]
+            img_file = glob.glob(outDir + base_path + '*moved.nii')[0]
             img = nib.load(img_file).get_fdata().astype(np.uint16)
-            bm_file = glob.glob(bm_dir+'*'+tag+'*run-01*'+'mask.nii')[0]
+            bm_file = glob.glob(bm_dir+ base_path + '*mask.nii')[0]
             bm = nib.load(bm_file).get_fdata().astype(np.uint16)
 
 
@@ -170,7 +174,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
         for i in range(len(all_img)):
             tmp, filename = os.path.split(all_img[i])
             # search for different sequence types:
-            for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
+            for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star', "TRACEWB1000", "ADC"]:
 
                 test = filename.find(tag)
                 if test > 0:
@@ -183,7 +187,7 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
                 print('ERROR: Filename ' + filename + ' does not contain the right sequence type description')
         
         
-        for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star']:
+        for tag in ['mprage', 't2tse', 't1tirm', 'flair', 't2star', "TRACEWB1000", "ADC"]:
             if os.path.isdir(outDir + tag):
                 print('######## ' + tag)
                 img_mov = glob.glob(outDir + tag + '/' +'*_moved.nii')
@@ -209,7 +213,8 @@ def FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMe
 # define specific input parameters for the current run:
 
 #Paths should be changed into a loop once we run for all subjects 
-root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
+#root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
+root = os.environ.get("MOCO_DATASET_PATH")
 # Path on Windows laptop '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
 # Path on Unix laptop '/home/melanie/Data/ds004332-download/'
 
@@ -233,16 +238,7 @@ metrics = True
 show_bm_reg = False
 
 
-#Run on all subjects:
-
-subjs = []
-for i in range(1,10):
-    subjs.append('sub-0'+str(i))
-for i in range(10,20):
-    subjs.append('sub-'+str(i))
-for i in range(20,23):
-    subjs.append('sub-'+str(i))
-
+subjs = [f"sub-{i:02d}" for i in range(1,23)]
 
 for sub in subjs:
 
@@ -252,7 +248,9 @@ for sub in subjs:
     SUBJECTS_DIR = root + 'derivatives/freesurfer/' + sub + '/transforms/'
     outDir = root + 'derivatives/results/registrations/' + sub + '/'
     outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
+    dwi_nifti_dir = root + "derivatives/clinical_dwi/" + sub + "/anat/"
 
-    FullAnalysis(sub, nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
+
+    FullAnalysis(sub, nifti_dir, dwi_nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
 
 

@@ -23,7 +23,7 @@ out_dir = os.path.join(root_dir, "derivatives/results/plots")
 in_dir_motion_estimates = os.path.join(root_dir, "derivatives/results/Motion_Estimates/")
 in_dir_metric_results = os.path.join(root_dir, "derivatives/results/metricsresults/")
 in_dir_observer_scores =  os.path.join(root_dir, "derivatives/observer_scores")
-out_dir_metrics = os.path.join(root_dir, "derivatives/results/Metrics_Results/Comparison/")
+out_dir_metrics = os.path.join(root_dir, "derivatives/results/metricsresults/")
 
 save = '_2022_05_27'
 
@@ -31,7 +31,7 @@ SMALL_MARKER = dict(markersize=3)
 
 
 
-sequs = ['mprage', 'flair', 't2tse', 't1tirm', 't2star']
+sequs = ['mprage', 'flair', 't2tse', 't1tirm', 't2star', "TRACEWB1000"]
 
 bids_seq_to_observer_score_map = {
     "mprage": "acq-mprage_T1w.tsv",
@@ -45,6 +45,11 @@ dwi_filename = "dwi.tsv"
 
 GT_STILL_IMAGE_SUBSEQUENCE = "pmcoff_rec-wore_run-01"
 
+def adjust_subsequences_to_seq(relevant_subsequences, seq):
+    if seq == "TRACEWB1000" or seq == "TRACEW" or seq == "ADC" or seq == "dwi":
+        return ["_".join([subs.split("_")[0]] + [subs.split("_")[2]]) for subs in relevant_subsequences]
+    else:
+        return [x for x in relevant_subsequences]
 
 def read_scores():
     seq_to_df = {}
@@ -127,7 +132,8 @@ def read_image_metrics():
             img_metrics_df = pd.concat([img_metrics_df, pd.DataFrame.from_dict(metrics)])
 
         # normalise tg values by dividing with mean value of off still
-        mean_still_tg = img_metrics_df.groupby("sub_sequence").agg({"tg" : "mean"}).loc[GT_STILL_IMAGE_SUBSEQUENCE]
+        mean_still_tg = img_metrics_df.groupby("sub_sequence").agg({"tg" : "mean"})\
+                        .loc[adjust_subsequences_to_seq([GT_STILL_IMAGE_SUBSEQUENCE], seq)[0]]
         img_metrics_df["tg"] = img_metrics_df["tg"].apply(lambda tg: tg / mean_still_tg)
 
         
@@ -164,16 +170,17 @@ def calculate_p_values_image_metrics(relevant_subsequences, seq_to_img_metrics, 
     for metric in ( "ssim", "psnr", "tg"):
         seq_to_p_values = {}
         for seq, image_metric_df in seq_to_img_metrics.items():
+            subsequences_for_seq = adjust_subsequences_to_seq(relevant_subsequences, seq)
             grouped_df = image_metric_df.groupby("sub_sequence").agg(list)
 
-            relevant_subsequence_metrics = grouped_df.loc[relevant_subsequences]
+            relevant_subsequence_metrics = grouped_df.loc[subsequences_for_seq]
             metric_arr = np.array(relevant_subsequence_metrics[metric].to_list()).T
             if len(indices) == 0:
                 p_qs = []
             else:
                 p_qs, rej_qs, ind_p, alt = PerformWilcoxonAllImg_custom_indices(metric.upper(), metric_arr, seq, out_dir_metrics, save, ind=indices)
             
-            seq_to_p_values[seq] = {tuple(np.array(relevant_subsequences)[indices[i]]): p_q for i, p_q in enumerate(p_qs)}
+            seq_to_p_values[seq] = {tuple(np.array(subsequences_for_seq)[indices[i]]): p_q for i, p_q in enumerate(p_qs)}
 
         metric_to_seq_to_p_values[metric] = seq_to_p_values
     return metric_to_seq_to_p_values
@@ -185,7 +192,7 @@ def draw_boxplot_1(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_subseque
     image_metrics_p_values = calculate_p_values_image_metrics(relevant_subsequences, seq_to_img_metrics)
 
     # removing reacquisition from subsequences since it was not part of DWI
-    dwi_subsequences = ["_".join([subs.split("_")[0]] + [subs.split("_")[2]]) for subs in relevant_subsequences]
+    dwi_subsequences = adjust_subsequences_to_seq(relevant_subsequences, "TRACEW")
     dwi_p_values = calculate_p_values_observer_rank(dwi_subsequences, dwi_rank_df)
 
     labels = ['Tenengrad', 'Observer Scores', 'Quality Rank']
@@ -202,9 +209,10 @@ def draw_boxplot_1(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_subseque
         relevant_metrics_for_sequence = []
         means = []
         for seq in sequs:
+            subsequences_for_seq = adjust_subsequences_to_seq(relevant_subsequences, seq)
             df : pd.DataFrame = seq_to_img_metrics[seq]
-            df = df[df["sub_sequence"].isin(relevant_subsequences)]
-            relevant_metrics_for_sequence += [df[df["sub_sequence"] == subseq]["tg"].to_numpy() for subseq in relevant_subsequences]
+            df = df[df["sub_sequence"].isin(subsequences_for_seq)]
+            relevant_metrics_for_sequence += [df[df["sub_sequence"] == subseq]["tg"].to_numpy() for subseq in subsequences_for_seq]
             means += df.groupby("sub_sequence").agg({"tg": "mean"})["tg"].to_list()
 
 
@@ -212,22 +220,22 @@ def draw_boxplot_1(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_subseque
         box1 = plt.boxplot(relevant_metrics_for_sequence, flierprops=SMALL_MARKER)
         for j in range(len(means)):
             plt.errorbar(x_axis_range[j], means[j], yerr=None, color=colors[j], fmt='.', capsize=3)
-        ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*']
-        ticks = [1.5, 3.5, 5.5, 7.5, 9.5] # when DIFF added, add 11.5 to list
+        ticklabels = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_STIR', 'T2*', 'TRACEW']
+        ticks = [1.5, 3.5, 5.5, 7.5, 9.5, 11.5] # when DIFF added, add 11.5 to list
         plt.xticks(labels=ticklabels, ticks=ticks, fontsize=14)
 
         for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors):
             patch.set(color=color, lw=1.7)
             patch2.set(color='k', lw=1.7)
         
-        def draw_p_values(relevant_subsequences, relevant_metric_for_sequence):
+        def draw_p_values(relevant_metric_for_sequence):
 
             def draw_stars(m_still, p_values):
                 maxi = []
                 for v in m_still:
                     maxi.append(np.amax(v))
 
-                indices = [[0,1], [2,3], [4,5], [6,7], [8,9]]
+                indices = [[0,1], [2,3], [4,5], [6,7], [8,9], [10, 11]]
                 Show_Stars(np.array(p_values), indices[0:len(p_values)], x_axis_range, maxi,
                             col='black')
 
@@ -239,7 +247,7 @@ def draw_boxplot_1(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_subseque
             draw_stars(relevant_metric_for_sequence, p_values)
             draw_lines(relevant_metric_for_sequence, p_values)
 
-        draw_p_values(relevant_subsequences, relevant_metrics_for_sequence)
+        draw_p_values(relevant_metrics_for_sequence)
         
         plt.ylabel("Tenengrad", fontsize=15)
         plt.yticks(fontsize=13)
@@ -521,11 +529,11 @@ def draw_boxplot_3(relevant_sequences, seq_to_relevant_subsequences):
 
     indices = [[[0, 1], [2, 3], [0, 3], [0, 2], [1, 3]],
                [[0, 1], [2, 3], [0, 3], [0, 2], [1, 3]],
-               []
+               [],
+               [[0, 1]]
                ]
 
 
-    metric_sequences = [x for x in relevant_sequences if not x == "TRACEW"]
 
     for i, metric in enumerate(["ssim", "psnr", "tg"]):
         # collected for each sequence
@@ -534,12 +542,16 @@ def draw_boxplot_3(relevant_sequences, seq_to_relevant_subsequences):
         
         ax = plt.subplot2grid((2,4), (i//2,i%2*2), colspan=2)
 
-        for in_plot_offset, seq, ind in zip(range(1, 12, 5), metric_sequences, indices):
+        for in_plot_offset, seq, ind in zip((1, 6, 11, 14), relevant_sequences, indices):
+            print(seq)
             relevant_subsequences = seq_to_relevant_subsequences[seq]
+            print(relevant_subsequences)
+            print(seq_to_img_metrics.keys())
             
             p_values = list(calculate_p_values_image_metrics(relevant_subsequences, 
                                                 {k:v for k,v in seq_to_img_metrics.items() if k == seq},
                                                 indices=ind)[metric][seq].values())
+            relevant_subsequences = adjust_subsequences_to_seq(relevant_subsequences, seq)
             df : pd.DataFrame = seq_to_img_metrics[seq]
             df = df[df["sub_sequence"].isin(relevant_subsequences)]
 
@@ -569,7 +581,8 @@ def draw_boxplot_3(relevant_sequences, seq_to_relevant_subsequences):
 
     def draw_quality_score():
         ax = plt.subplot2grid((2,6), (1,3), colspan=2)
-        qs_relevant_sequences = [s for s in relevant_sequences if not s == "TRACEW" and not s == "t2star"]
+        qs_relevant_sequences = [s for s in relevant_sequences if "TRACEW" not in s
+                                 and not s == "ADC" and not s == "t2star"]
         for in_plot_offset, seq, ind in zip(range(1, 12, 5), qs_relevant_sequences, indices):
             relevant_subsequences = seq_to_relevant_subsequences[seq]
 
@@ -596,7 +609,7 @@ def draw_boxplot_3(relevant_sequences, seq_to_relevant_subsequences):
     draw_quality_score()
             
     def draw_quality_rank():
-        relevant_subsequences = seq_to_relevant_subsequences["TRACEW"]
+        relevant_subsequences = seq_to_relevant_subsequences["TRACEWB1000"]
         relevant_subsequences = ["_".join([subs.split("_")[0]] + [subs.split("_")[2]]) for subs in relevant_subsequences]
         
         ax = plt.subplot2grid((2,6), (1,5), colspan=1)  
@@ -636,12 +649,11 @@ def draw_boxplot_3(relevant_sequences, seq_to_relevant_subsequences):
 
     plt.show()
 
-def subplot_settings_plot_3(labels, i, ax, num_seqs=3):
+def subplot_settings_plot_3(labels, i, ax, num_seqs=4):
     plt.ylabel(labels[i], fontsize=15)
 
-    ticklabels = ['T2_TSE', 'T1_STIR', 'T2*'][:num_seqs]
-    ticklabels = ['T2_TSE', 'T1_STIR', 'T2*'][:num_seqs]
-    ticks = [2.5, 7.5, 11.5][:num_seqs]
+    ticklabels = ['T2_TSE', 'T1_STIR', 'T2*', "TRACEW"][:num_seqs]
+    ticks = [2.5, 7.5, 11.5, 14.5][:num_seqs]
     plt.xticks(labels=ticklabels, ticks=ticks, fontsize=12)
     ax.text(-0.18, 0.9, string.ascii_lowercase[i], transform=ax.transAxes,
                 size=21, weight='bold')
@@ -649,14 +661,204 @@ def subplot_settings_plot_3(labels, i, ax, num_seqs=3):
     plt.tick_params('both', length=0)
     plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
 
-relevant_sequences_plot_3 = ['t2tse', 't1tirm', 't2star']
+relevant_sequences_plot_3 = ['t2tse', 't1tirm', 't2star', "TRACEWB1000"]
 
 seq_to_relevant_subsequences = {seq:["pmcoff_rec-wore_run-02", "pmcon_rec-wore_run-02",
                                      "pmcoff_rec-wre_run-02", "pmcon_rec-wre_run-02"] 
                                 for seq in ["t2tse", "t1tirm"]}
+
 seq_to_relevant_subsequences["t2star"] = ["pmcoff_rec-wore_run-02", "pmcon_rec-wore_run-02"]
-seq_to_relevant_subsequences["TRACEW"] = ["pmcoff_rec-wore_run-02", "pmcon_rec-wore_run-02"]
+seq_to_relevant_subsequences["TRACEWB1000"] = ["pmcoff_rec-wore_run-02", "pmcon_rec-wore_run-02"]
+
 
 
 
 draw_boxplot_3(relevant_sequences_plot_3, seq_to_relevant_subsequences)
+
+
+
+def draw_ADC_histogram_plot():
+    # calculate histograms of ACS difference images:
+    im_dir = os.path.join(root_dir, "derivatives", "clinical_dwi")
+    freesurfer_dir = os.path.join(root_dir, "derivatives", "freesurfer")
+    import glob
+    import nibabel as nib
+    
+        
+    subjects = [f"sub-{i:02d}" for i in [2,3,4,5,7,12,13,15,16,17]]
+    
+
+    all_mean, all_std, all_sum = [], [], []
+    adc_results_save_path = os.path.join(out_dir_metrics, 'ADC_all_values_'+save + ".npy")
+    if not os.path.exists(adc_results_save_path):
+        for sub in subjects:
+            
+            differences = []
+            descr = []
+            still_off = os.path.join(im_dir, sub, "anat", f"{sub}_acq-pmcoff_run-01_desc-ADC_dwi.nii.gz")
+            still = nib.load(still_off).get_fdata().astype(np.uint16)
+            bm = os.path.join(freesurfer_dir, sub, "anat", f"{sub}_acq-pmcoff_run-01_desc-ADC_dwi_space-orig_mask.nii")
+            bm = nib.load(bm).get_fdata().astype(np.uint16)
+
+
+            still = still*bm
+            relevant_subsequences = adjust_subsequences_to_seq(
+                                        relevant_subsequences=["pmcon_rec-wore_run-01", "pmcoff_rec-wore_run-02", "pmcon_rec-wore_run-02"],
+                                        seq="ADC")
+            all_imgs = [x for x in glob.glob(os.path.join(im_dir, sub, "anat") + '/*ADC*.nii*')]
+            # ensures order as in relevant subsequences
+            all_imgs_sorted = [list(filter(lambda f: ss in f, all_imgs))[0] for ss in relevant_subsequences]
+
+            for im in all_imgs_sorted:
+                img = nib.load(im).get_fdata().astype(np.uint16)
+                img = img*bm
+
+                diff = still.astype(float) - img.astype(float)
+                differences.append(diff)
+                descr.append(os.path.basename(im))
+            differences, descr = np.array(differences), np.array(descr)
+            ind = np.argsort(descr)
+            differences = differences[ind]
+            descr = descr[ind] 
+            sums, means, stds = [], [], []
+            print(relevant_subsequences)
+            for i in range(0, len(relevant_subsequences)):
+                diff = differences[i][bm!=0]   # only look at voxels inside the brain!
+                n, bins, tmp = plt.hist(diff, bins = 2000)
+                plt.title(descr[i][12:25])
+                sums.append(np.sum(np.abs(diff))/len(diff))
+
+                mids = 0.5*(bins[1:]+bins[:-1])
+                mean = np.average(mids, weights=n)
+                std = np.sqrt(np.average((mids-mean)**2, weights=n))
+                means.append(mean)
+                stds.append(std)
+                
+            all_mean.append(means)
+            all_std.append(stds)
+            all_sum.append(sums)
+
+        # look at results for all subjects:
+        print("final results:",  np.array(all_mean).shape)
+        All_mean, All_std, All_sum = np.array(all_mean), np.array(all_std), np.array(all_sum)
+        save_arr = np.array([All_mean, All_std, All_sum])
+        np.save(adc_results_save_path, save_arr)
+    
+    # load the values for the ADC histograms and plot them:
+    All_mean, All_std, All_sum = np.load(adc_results_save_path)
+
+
+    names_diff = ['prospective MoCo', 'no MoCo', 'prospective MoCo']
+    print(All_mean.shape)
+    print(All_std.shape)
+    print(All_sum.shape)
+    
+    p_mean, rej_mean, ind, altern = PerformWilcoxonAllImg_custom_indices('Mean', All_mean, 'ADC', 
+                                                          out_dir_metrics, 
+                                                          save, option='diff', ind=[[0,1],[1,2],[0,2]])
+    p_std, rej_std, ind, altern = PerformWilcoxonAllImg_custom_indices('Std', All_std, 'ADC',
+                                                        out_dir_metrics, 
+                                                        save, option='diff',ind=[[0,1],[1,2], [0,2]])
+    p_sum, rej_sum, ind, altern = PerformWilcoxonAllImg_custom_indices('Sum', All_sum, 'ADC', 
+                                                        out_dir_metrics, 
+                                                        save, option='diff',ind=[[0,1],[1,2],[0,2]])
+    
+    mean_mean = np.mean(All_mean, axis=0)
+    mean_std = np.mean(All_std, axis=0)
+    mean_sum = np.mean(All_sum, axis=0)
+
+    print("means", mean_mean)
+    print("std", mean_std)
+    
+    color_dict = { 'prospective MoCo': 'tab:blue', 'no MoCo': 'tab:orange'}
+    names = ['with PMC', 'without PMC', 'with PMC']
+    
+    colors_te = []
+    for n in names_diff:
+        colors_te.append(color_dict[n])
+    x = np.arange(1,len(mean_mean)+1)
+    
+    
+    plt.figure(figsize=(10,4))
+    ax=plt.subplot(1,2,1)
+    for i in range(len(x)):
+        plt.errorbar(x[i], mean_mean[i], yerr=None, color=colors_te[i], fmt='.', 
+                     capsize=3)
+    
+    small = dict(markersize=3)
+    box1 = plt.boxplot(All_mean, flierprops=small)
+    for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors_te):
+                patch.set(color=color, lw=1.7)
+                patch2.set(color='k', lw=1.7)
+    
+    plt.xticks(labels=[], ticks=[])
+    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
+    for y1, y2 in zip(All_mean[:,1], All_mean[:,2]):
+        plt.plot([2,3], [y1, y2], 'darkslategray', lw=1)
+    plt.annotate('Still', xy=(0.17, -0.1), xytext=(0.17, -0.18), 
+                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom', 
+                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5),
+                 arrowprops=dict(arrowstyle='-[, widthB=1.4, lengthB=0.7', 
+                                 lw=1.5, color='grey'))
+    plt.annotate('Nod', xy=(0.67, -0.1), xytext=(0.67, -0.18), 
+                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom',
+                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5), 
+                 arrowprops=dict(arrowstyle='-[, widthB=3.0, lengthB=0.7', 
+                                 lw=1.5, color='grey'))
+    Show_Stars(p_mean, ind, x, np.amax(All_mean, axis=0), arange_dh='diff', 
+               col='black')
+    lim = plt.gca().get_ylim()
+    plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
+    plt.ylabel('Mean of histogram [$\\frac{\mu m^2}{s}$]')
+    ax.text(-0.22, 0.9, string.ascii_lowercase[0], transform=ax.transAxes,
+            size=21, weight='bold')
+    
+    ax=plt.subplot(1,2,2)
+    for i in range(1):
+        plt.errorbar(x[i], mean_std[i], yerr=None, color=colors_te[i], fmt='.', 
+                     capsize=3)
+    for i in range(1,len(x)):
+        plt.errorbar(x[i], mean_std[i], yerr=None, label=names[i], 
+                     color=colors_te[i], fmt='.', capsize=3)
+    
+    small = dict(markersize=3)
+    box1 = plt.boxplot(All_std, flierprops=small)
+    for patch, patch2, color in zip(box1['boxes'], box1['medians'], colors_te):
+                patch.set(color=color, lw=1.7)
+                patch2.set(color='k', lw=1.7)
+    
+    plt.xticks(labels=[], ticks=[])
+    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
+    for y1, y2 in zip(All_std[:,1], All_std[:,2]):
+        plt.plot([2,3], [y1, y2], 'darkslategray', lw=1)
+    plt.annotate('Still', xy=(0.17, -0.1), xytext=(0.17, -0.18), 
+                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom', 
+                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5), 
+                 arrowprops=dict(arrowstyle='-[, widthB=1.4, lengthB=0.7', 
+                                 lw=1.5, color='grey'))
+    plt.annotate('Nod', xy=(0.67, -0.1), xytext=(0.67, -0.18), 
+                 xycoords='axes fraction', fontsize=12, ha='center', va='bottom',
+                 bbox=dict(boxstyle='square', fc='white', ec='grey', lw=1.5), 
+                 arrowprops=dict(arrowstyle='-[, widthB=3.0, lengthB=0.7', 
+                                 lw=1.5, color='grey'))
+    Show_Stars(p_std, ind, x, np.amax(All_std, axis=0), arange_dh='diff', 
+               col='black')
+    lim = plt.gca().get_ylim()
+    plt.ylim(lim[0],(lim[1]-lim[0])*1.1+lim[0])
+    plt.ylabel('Std of histogram [$\\frac{\mu m^2}{s}$]')
+    legend = plt.legend(loc='upper center', ncol = 2, 
+                        bbox_to_anchor=(-0.2, -0.25), frameon=True)
+    ax.text(-0.22, 0.9, string.ascii_lowercase[1], transform=ax.transAxes,
+            size=21, weight='bold')
+    
+    legend.get_frame().set_linewidth(2)  
+    plt.tight_layout()         
+    plt.subplots_adjust(wspace=0.3, hspace=4)
+    plt.savefig(out_dir+'ADC'+save+'.tiff', format='tiff', bbox_inches='tight', 
+                dpi=200)
+    plt.savefig(out_dir+'ADC'+save+'.png', format='png', bbox_inches='tight', 
+                dpi=200)
+    plt.show()
+
+
+draw_ADC_histogram_plot()
