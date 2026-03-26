@@ -41,7 +41,7 @@ We are sharing 22 datasets with and without deliberate head movements that were 
 Data from a clincial study with pediatric patients is shared via [PublicnEUro](https://datacatalog.publicneuro.eu/dataset/PN000011%20A%20dataset%20of%20clinical%20pediatric%20brain%20MRI%20with%20and%20without%20motion%20correction/V1). The data contains defaced MRI images and motion tracking information.
 
 ## Outreach
-The MoCo porject has led to quite a few presentations on the topic of motion correction, image quality and movement characterization of pedicatric cohorts in general. Some of them can be found in the outreach folder.
+The MoCo project has led to quite a few presentations on the topic of motion correction, image quality and movement characterization of pedicatric cohorts in general. Some of them can be found in the outreach folder.
 
 
 
