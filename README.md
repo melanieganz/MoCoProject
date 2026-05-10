@@ -20,7 +20,7 @@ Evaluating the match of image quality metrics with radiological assessment in a 
 
 ### MotionCorrectedClinicalMRProtocol:
 Evaluating the performance of markerless prospective motion correction and selective reacquisition in a clinical protocol for brain MRI
-Code for the work with a dataset of 22 healthy volunteers to validate the quality of preopsective motion correction techniques prior to the ongoing clinical study at Neurobiology Research Unit, Copenhagen University Hospital (Denmark). Fully anonymized data (BIDSified image data and motion tracking files) are available on [OpenNeuro](https://openneuro.org/datasets/ds004332). Raw data in ISMRM-RD format can be shared upon signing the Open Brain consent and upon request - please e-mail mganz@nru.dk.
+Code for the work with a dataset of 22 healthy volunteers to validate the quality of preopsective motion correction techniques prior to the ongoing clinical study at Neurobiology Research Unit, Copenhagen University Hospital (Denmark). Fully anonymized data (BIDSified image data and motion tracking files) are available on [OpenNeuro](https://openneuro.org/datasets/ds004332). Raw data in ISMRM-RD format is shared via [PublinEUro](https://datacatalog.publicneuro.eu/dataset/PN000009%20Markerless%20Prospective%20Motion%20Correction/V1), a GDPR compatible data sharing site, and shared under DUA.
 
 ### RealNoiseMRI challenge:
 MRI reconstruction challenge with realistic noise, first round associated with MICCAI 2021, second round asociated with MedNeurIPS
@@ -35,10 +35,12 @@ Finally, the motion will also be compared to the motion pattern exhibited by chi
 
 ## Data
 ### Datasets with and without deliberate head movements for evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI
-We are sharing 22 datasets with and without deliberate head movements that were used in the projects on ImageQualityMetrics, MotionCorrectedClinicalMRProtocol and the RealNoiseMRI challenge publically on [OpenNeuro](https://openneuro.org/datasets/ds004332). The dataset consists of fully anonymized data (BIDSified image data and motion tracking files). Raw data in ISMRM-RD format can be shared via [PublicnEUro](https://datacatalog.publicneuro.eu/dataset/PN000009%20Markerless%20Prospective%20Motion%20Correction/V1). A paper describing the dataset has been accepted for publication at Scientific Data in March 2026. 
+We are sharing 22 datasets with and without deliberate head movements that were used in the projects on ImageQualityMetrics, MotionCorrectedClinicalMRProtocol and the RealNoiseMRI challenge publically on [OpenNeuro](https://openneuro.org/datasets/ds004332). The dataset consists of fully anonymized data (BIDSified image data and motion tracking files). Raw data in ISMRM-RD format can be shared via [PublicnEUro](https://datacatalog.publicneuro.eu/dataset/PN000009%20Markerless%20Prospective%20Motion%20Correction/V1). A paper describing the dataset has been accepted for publication at Scientific Data in March 2026 title [Brain MRI Dataset Featuring a Full Clinical Protocol With and Without Intentional Motion](https://www.nature.com/articles/s41597-026-07144-z).
+ . 
 
 ### A dataset of clinical pediatric brain MRI with and without motion correction 
-Data from a clincial study with pediatric patients is shared via [PublicnEUro](https://datacatalog.publicneuro.eu/dataset/PN000011%20A%20dataset%20of%20clinical%20pediatric%20brain%20MRI%20with%20and%20without%20motion%20correction/V1). The data contains defaced MRI images and motion tracking information.
+Data from a clinical study with pediatric patients is shared via [PublicnEUro](https://datacatalog.publicneuro.eu/dataset/PN000011%20A%20dataset%20of%20clinical%20pediatric%20brain%20MRI%20with%20and%20without%20motion%20correction/V1). The data contains defaced MRI images and motion tracking information. A paper describing the dataset has been accepted for publication at Scientific Data in April 2026 titled [A dataset of clinical pediatric brain MRI with and without motion correction](https://www.nature.com/articles/s41597-026-07379-w). 
+
 
 ## Outreach
 The MoCo project has led to quite a few presentations on the topic of motion correction, image quality and movement characterization of pedicatric cohorts in general. Some of them can be found in the outreach folder.
