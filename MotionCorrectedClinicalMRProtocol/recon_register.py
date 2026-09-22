@@ -88,23 +88,26 @@ def transformMRI(sub, niftiDir, outDir):
     return 0
 
 
-def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
+def applyTransformMRI(niftiDir, dwiNiftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
     '''
-    Applies transforms (saved in outDir/regs or outDir/regs_robust) to the 
+    Applies transforms (saved in outDir/regs or outDir/regs_robust) to the
     scans as well as to the brainmasks
 
     Parameters
     ----------
     niftiDir : str
         directory where nifti images are stored.
+    dwiNiftiDir : str
+        directory where the DWI-derived (TRACEWB1000, ADC) nifti images are
+        stored.
     brainmask : str
-        directory where brainmask for reference image is stored. This is 
+        directory where brainmask for reference image is stored. This is
         probably the FreeSurfer out put directory sub_ID/mri/brainmask.mgz
     outDir : str
         directory where moved and masked images will be saved.
     apply_transform_bm : bool
-        whether the registration transform should also be applied to the 
-        images. This is not necessary for calculating metrics. Only if one 
+        whether the registration transform should also be applied to the
+        images. This is not necessary for calculating metrics. Only if one
         starts from scratch with recon-all etc. for reproducing our calculations.
 
     Returns
@@ -134,7 +137,29 @@ def applyTransformMRI(niftiDir, reg_dir, brainmask, outDir, apply_transform_bm):
 
                 print(i, ' done')
 
-    
+    # transform DWI-derived (TRACEWB1000, ADC) images, which live in
+    # dwiNiftiDir as .nii.gz rather than niftiDir as .nii:
+    for tag in ['TRACEWB1000', 'ADC']:
+        ref_files = glob.glob(dwiNiftiDir + '*pmcoff*run-01*' + f'desc-{tag}' + '*.nii.gz')
+        if len(ref_files) > 0:
+            targImg = ref_files[0]
+            files = glob.glob(dwiNiftiDir + f'*desc-{tag}' + '*.nii.gz')
+
+            for i in range(0, len(files)):
+                vol = os.path.abspath(dwiNiftiDir + os.path.basename(files[i]))
+                # strip the .gz to get the .nii-based name used for output and lta lookup:
+                base_nii = os.path.basename(files[i])[:-3]
+                name2, ext2 = os.path.splitext(base_nii)
+                vol_moved = outDir + name2 + '_moved' + ext2
+                regname = os.path.abspath(reg_dir + base_nii + '.lta')
+                print('regname : ', regname)
+
+                # transform:
+                subprocess.run('mri_vol2vol --mov ' + vol + ' --targ ' + targImg + ' --o ' + vol_moved + ' --lta ' + regname, shell=True)
+
+                print(i, ' done')
+
+
     if apply_transform_bm:
         # binarize brainmask and transform T1_MPR:
         # output: brainmask_bin.nii and *T1_MPR_*_moved.nii
