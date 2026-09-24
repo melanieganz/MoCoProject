@@ -14,8 +14,7 @@ on request, from PublicnEUro:
     https://datacatalog.publicneuro.eu/dataset/PN000009%20Markerless%20Prospective%20Motion%20Correction/V1
 
 See the README.md in this folder for the required environment
-variables and dependencies, and for an important caveat about the raw
-subject-numbering assumption this script makes.
+variables and dependencies.
 '''
 import os
 import sys
@@ -39,11 +38,8 @@ def raw_to_bids_subject(raw_subject_dir):
     Maps a raw PublicnEUro subject directory name (e.g. 'Subject_01/')
     to the corresponding OpenNeuro/BIDS subject ID (e.g. 'sub-01/').
 
-    ASSUMPTION: raw subject numbering matches the OpenNeuro ds004332
-    numbering 1:1 in the same order. This has not been verified against
-    an actual PublicnEUro download (access is granted upon request) --
-    please confirm this mapping is correct before trusting results from
-    this script, and update this function if it isn't.
+    Raw subject numbering matches the OpenNeuro ds004332 numbering 1:1
+    in the same order (confirmed).
     '''
     num = ''.join(ch for ch in raw_subject_dir if ch.isdigit())
     return f'sub-{int(num):02d}/'

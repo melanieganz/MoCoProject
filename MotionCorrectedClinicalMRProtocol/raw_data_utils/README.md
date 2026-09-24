@@ -38,17 +38,14 @@ request** (not open like the OpenNeuro release):
   - `PUBLICNEURO_RAW_PATH` -- path to your local copy of the PublicnEUro raw
     data release.
 
-### Known caveat: subject numbering
+### Subject numbering
 
 The raw PublicnEUro data is organized as `Subject_01/`, `Subject_02/`, ...,
-which is **not** the same as this repo's OpenNeuro-side `sub-01/`, `sub-02/`,
-... naming. `get_scan_end.py` assumes the two numberings correspond 1:1 in
-the same order (`Subject_01/` &rarr; `sub-01/`, etc.) via the
-`raw_to_bids_subject()` helper at the top of the script. This has **not**
-been verified against an actual PublicnEUro download, since access is
-granted on request and wasn't available while writing this. If your PublicnEUro
-download uses different subject numbering, update `raw_to_bids_subject()`
-accordingly before trusting this script's output.
+which is not the same naming as this repo's OpenNeuro-side `sub-01/`,
+`sub-02/`, ... . `get_scan_end.py` maps between the two via the
+`raw_to_bids_subject()` helper at the top of the script, assuming the two
+numberings correspond 1:1 in the same order (`Subject_01/` &rarr; `sub-01/`,
+etc.) -- confirmed correct.
 
 ### Usage
 
