@@ -41,7 +41,7 @@ The analysis can be re-run in the following order:
     plot_DWI = True
     calc_ADC_hist = True or False (depending on whether the metrics for the ADC histograms should be re-calculated).
     
-Lastly, the script 'get_scan_end.py' can be used to extract the scan end times again. This is optional, since we provide the extracted scan end times in ../TCLData.
+Lastly, the script `raw_data_utils/get_scan_end.py` can be used to extract the scan end times again. This is optional, since we provide the extracted scan end times in `source/`. Unlike the rest of this pipeline, it needs the raw (non-anonymized) ismrmrd scanner data, which is available on request from PublicnEUro rather than from the OpenNeuro release -- see [raw_data_utils/README.md](raw_data_utils/README.md) for details.
 
 ## References:
 [1] https://freesurfer.net/fswiki/recon-all, software version FreeSurfer v7.1.1 is used.
