@@ -530,10 +530,8 @@ def ExtractMotionParForScan(subj, name, seq_type):
 
     '''
     
-    #bids_dir = '../BIDSdata_defaced/'+subj
-    bids_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/'+subj+'anat/'
-    #track_dir = '../TCLData/'+subj
-    track_dir = '/home/melanie/FromOpenNeuro/renamed_ds004332-download/source/'+subj+'TCLdata/'
+    bids_dir = root+subj+'anat/'
+    track_dir = root+'source/'+subj+'TCLdata/'
     
     name_ = name
     #if 'DIFF' in name: # DIFF
