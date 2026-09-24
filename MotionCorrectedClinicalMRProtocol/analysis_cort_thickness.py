@@ -1,460 +1,408 @@
-'''Warning - this script reruns FreeSurfers recon-all on all images and therefore takes very long to run'''
-import numpy as np
-import subprocess
-import os
-import datetime
+'''
+Reproduces the manuscript's Figure 8 (motion-related cortical thickness
+changes): FreeSurfer cross-sectional recon-all on the T1 MPR scans needed
+per subject, resampling+smoothing cortical thickness to fsaverage, a
+paired vertex-wise GLM (thickness ~ RMS motion) per condition against the
+"Still without PMC" reference, FDR correction, and a composite figure in
+the style of Fig. 8.
+
+This corresponds to the paper's own description of that analysis exactly:
+cortical thickness was generated with FreeSurfer's *cross-sectional*
+recon-all stream (not the longitudinal base+long stream some earlier code
+in this repo explored), using all T1 MPR scans, for all participants that
+have them (all 22, by default -- T1 MPR is the one sequence acquired for
+every subject).
+
+Figure 8's five conditions, each compared against the same "Still without
+PMC" reference:
+    Without reacquisition: Still with PMC | Nod without PMC | Nod PMC
+    With reacquisition:    Nod without PMC | Nod with PMC
+(SHAKE is not part of this analysis; the paper's own text and Fig. 8 only
+use STILL and NOD motion for the thickness/GLM analysis, even though other
+code in this repo's history explored SHAKE and longitudinal streams too.)
+
+Known simplification vs. the published method: the manuscript extracted the
+"Still without PMC" reference's brain mask with FreeSurfer, then manually
+corrected it, and reused that corrected mask via bbregister-space alignment
+for the image-quality metrics (not for cortical thickness itself). This
+script instead runs `recon-all -all` fully automatically for every scan,
+including the reference, using FreeSurfer's own automated skull-stripping
+throughout -- there is no manual QC/correction step. This only affects the
+"Still without PMC" condition; every other condition needs its own
+independent recon-all regardless, since each reflects that scan's own
+motion artifacts.
+
+Usage
+-----
+Only two things need to be supplied, both as environment variables (same
+convention as the rest of this pipeline):
+
+    export MOCO_DATASET_PATH=/path/to/ds004332-download/    # trailing slash
+    export FREESURFER_HOME=/path/to/freesurfer
+
+    python3 analysis_cort_thickness.py
+
+Requires step 2 (analysis_motion_data.py, new_calc=True) to have already
+been run, since the RMS motion values used as the GLM covariate are read
+from its output under derivatives/results/Motion_Estimates*.
+
+Optional flags:
+    --subjects sub-01 sub-02 ...   only these subjects (default: all 22)
+    --jobs N                       concurrent recon-all jobs (default 5)
+    --threads-per-job N            OMP_NUM_THREADS per recon-all (default 2)
+                                    (jobs * threads-per-job should not
+                                    exceed the CPU budget you want to use;
+                                    defaults to 5*2=10)
+    --stage {recon,glm,plot,all}   run only part of the pipeline
+                                    (default: all). recon-all is by far
+                                    the slow part (hours per scan) and is
+                                    resumable -- already-completed subjects
+                                    are skipped on a rerun, so it's safe to
+                                    interrupt and restart with --stage recon,
+                                    then run --stage glm once it's done.
+
+Output (all under $MOCO_DATASET_PATH/derivatives/results/):
+    freesurfer_subjects/<sub>_<condition>/    recon-all output per scan
+    cort_thickness/<condition>.fsgd           per-condition design file
+    cort_thickness/{lh,rh}.<condition>.glmdir/  mri_glmfit output
+    plots/Fig8_Cortical_Thickness.png         composite figure
+'''
+import argparse
 import glob
-from recon_register import Run_Long_Stream
-from utils import SortFiles
+import os
+import subprocess
+import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-root = os.environ.get("MOCO_DATASET_PATH")
+import numpy as np
 
-run_RR = True
-run_no_RR = False
-run_long = False
-
-names = []
-for i in range(1,10):
-    names.append('sub-0'+str(i)+'/')
-for i in range(10,20):
-    names.append('sub-'+str(i)+'/')
-for i in range(20,23):
-    names.append('sub-'+str(i)+'/')
-
-''' (1)  Run ReconAll for the motion RR scans in order to compare freesurfer estimates'''
-
-if run_RR == True:
-    for name in names:
-        # define directories: 
-        nifti_dir = root+name+'anat/'
-
-        list_sequ = os.listdir(nifti_dir)
-        sequences = [x for x in list_sequ if x.startswith('sub')]
-
-        if not os.path.exists(nifti_dir):
-            os.makedirs(nifti_dir)
-        
-        
-        for seq in sequences:
-            if 'mprage' not in seq:
-                continue
-            out_volume = nifti_dir + seq
-            if 'mpragepmcoff*run-01' in seq:
-                continue
-            
-
-            # Run recon all:
-            descr = ['ON_STILL_', 'ON_NOD_', 'ON_SHAKE_', 'OFF_NOD_', 'OFF_SHAKE_']
-            descr = []
-            for d in descr:
-                if 'mprage' + d in seq:
-                    if d == 'ON_STILL_':
-                        subj_id = 'X_'+d+name
-                    else:
-                        if 'RR' in seq:
-                            subj_id = 'X_'+d+'RR_'+name
-                        else:
-                            print('No RR scan for ', d)
-                            continue
-
-                    if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+subj_id):
-                        continue
-                
-                    subprocess.run('recon-all -i ' + out_volume + ' -s ' + subj_id + ' -sd '+os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+' -all -parallel', 
-                                   shell=True)
-                    
-                    print('############')
-                    print(name, ' done')
-                    print('############')
+sys.path.insert(0, os.path.dirname(__file__))
+from utils import SortFiles  # noqa: E402
 
 
+ALL_SUBJECTS = [f"sub-{i:02d}" for i in range(1, 23)]
 
-''' (2) Run ReconAll for the motion MoCo ON/OFF scans with REAC in order to compare freesurfer estimates'''
+# (condition_key, pmc, run, reac). reac is the BIDS 'rec-' tag: 'wore'
+# (without reacquisition) or 'wre' (with). Still (run-01) only ever has
+# 'wore', since reacquisition wasn't applied to scans without intentional
+# motion.
+REFERENCE = ("ref", "pmcoff", "run-01", "wore")
 
-if run_no_RR:
-    for name in names:
-        # define directories:
-        nifti_dir = root + name + 'anat/'
-            
-        list_sequ = os.listdir(nifti_dir)
-        sequences = [x for x in list_sequ if x.startswith('sub')]
-        
-        # check that nifti directory exists, otherwise make a new nifti directory 
-        # for this subject: 
-        if not os.path.exists(nifti_dir):
-            os.makedirs(nifti_dir)
-        
-        
-        for seq in sequences:
-            if 'mprage' not in seq:
-                continue
+CONDITIONS = [
+    ("still_pmc",    "pmcon",  "run-01", "wore"),
+    ("nod_off",      "pmcoff", "run-02", "wore"),
+    ("nod_on",       "pmcon",  "run-02", "wore"),
+    ("nod_off_reac", "pmcoff", "run-02", "wre"),
+    ("nod_on_reac",  "pmcon",  "run-02", "wre"),
+]
 
-            out_volume = nifti_dir +'TCL'+name[:-1]+'_' + seq + '.nii'
-            if seq.startswith('TCLMOCO_OFF_STILL_T1_MPR'):
-                continue
-            
-        
-            # Run recon all:
-            descr = ['OFF_NOD_', 'OFF_SHAKE_']
-            
-            for d in descr:
-                if d in seq and 'RR' not in seq:
-                    subj_id = 'X_'+d+name
-
-            
-                    if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+subj_id):
-                        continue
-                
-                    subprocess.run('recon-all -i ' + out_volume + ' -s ' + subj_id + ' -sd '+os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+' -all -parallel', 
-                                   shell=True)
-                    
-                    print('############')
-                    print(name, ' done')
-                    print('############')
-                    
-                    
-                    with open(os.path.join(root, 'derivatives/results/Surface_Estimates/') + 'Status_Recon_All.txt', 'a') as f:
-                        f.write(subj_id+' done at '+str(datetime.datetime.now())+'\n')
+CONDITION_TITLES = {
+    "still_pmc":    "Still with PMC",
+    "nod_off":      "Nod without PMC",
+    "nod_on":       "Nod PMC",
+    "nod_off_reac": "Nod without PMC\n(reac)",
+    "nod_on_reac":  "Nod with PMC\n(reac)",
+}
 
 
-
-''' (3) Check whether cross-sectional runs were successful. If not, run them 
-again. Otherwise run longitudinal stream. Afterwards, check longitudinal runs '''
-
-outDir = os.path.join(root, 'derivatives/results/Surface_Estimates/')
-
-if run_long:
-    for name in names:
-        descr = ['ON_STILL_', 'ON_NOD_',  'OFF_NOD_', 'ON_SHAKE_', 'OFF_SHAKE_']
-    
-        # Test whether cross recon - all successful:
-        fails = []
-    
-        for d in descr:
-            if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_'+d+name+'/scripts/recon-all.error'):
-                print('Recon all failed for ', 'X_', d, name)
-                fails.append('X_'+d+name)
-            if d != 'ON_STILL_':
-                if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_'+d+'RR_'+name+'/scripts/recon-all.error'):
-                    print('Recon all failed for ', 'X_'+d+'RR_'+name)
-                    fails.append('X_'+d+'RR_'+name)
-    
-        # run recon All again for failed runs:
-        #Run_Recon_All_Again(fails)  # The Run_Recon_All_Again does not exist in the recon_register script, so I have commented this line. I will check if there even exist any fails, and then what to do
-        print('fails : ', fails)
-    
-        # run longitudinal processing stream:
-        Run_Long_Stream(name)
-    
-        # inspect outcomes of base and long!!!!!
+def nifti_path(root, sub, pmc, run, reac):
+    return os.path.join(root, sub, 'anat',
+                         f'{sub}_acq-mprage{pmc}_rec-{reac}_{run}_T1w.nii')
 
 
-    # Check longitudinal runs:
-    for name in names:
-        descr = ['ON_STILL_', 'ON_NOD_',  'OFF_NOD_', 'ON_SHAKE_', 'OFF_SHAKE_']
-    
-        fails = []
-        for d in descr:
-            if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_'+d+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
-                print('Recon all failed for ', 'X_', d, name, '.long')
-                fails.append('X_'+d+name[:-1])
-            if d != 'ON_STILL_':
-                if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_'+d+'RR_'+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
-                    print('Recon all failed for ', 'X_'+d+'RR_'+name+'.long')
-                    fails.append('X_'+d+'RR_'+name[:-1])
-    
-        if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
-            print('Recon all failed for '+name[:-1]+'.long.')
-            fails.append(name[:-1])
-    
-        if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_BASE_'+name+'scripts/recon-all.error'):
-            print('Recon all failed for X_BASE_'+name)
-            fails.append('X_BASE_'+name[:-1])
-    
-        
-        # run longitudinal recon-all again without parallel option for failed runs:
-        for f in fails:
-            if f != 'X_BASE_'+name[:-1]:
-                subprocess.run('recon-all -long '+f+' X_BASE_'+name[:-1]+' -sd '+os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+' -all', shell=True)
-    
-                with open(os.path.join(root, 'derivatives/results/Surface_Estimates/') + 'Status_Long_ReRun.txt', 'a') as file:
-                    file.write(f+'_RR re-run done at '+str(datetime.datetime.now())+'\n')
-        
-    
+def fs_subject_id(sub, condition_key):
+    return f'{sub}_{condition_key}'
 
 
-''' (4) Calculate average cortical thickness across all volunteers and all 
-cortical regions - first for cross-sectional, then for longitudinal runs:'''
+# ---------------------------------------------------------------------------
+# Motion metrics (RMS displacement), reused from analysis_motion_data.py's
+# output. run-01 = STILL, run-02 = NOD (confirmed subject/run correspondence
+# with the manuscript's own naming).
+# ---------------------------------------------------------------------------
 
-# compute only for ground truth scans
-for name in names:
-    subprocess.run('mris_anatomical_stats -log '+outDir+'AnatomicalStats/Stats_'+name[:-1]+'.txt '+name[:-1]+ ' lh', shell=True)
-    subprocess.run('mris_anatomical_stats -log '+outDir+'AnatomicalStats/Stats_rh_'+name[:-1]+'.txt '+name[:-1]+ ' rh', shell=True)
-    a=1
-
-#now load all data:
-all_th = []
-for name in names:
-    tmp = np.loadtxt(outDir+'AnatomicalStats/Stats_'+name[:-1]+'.txt', skiprows=1, usecols=2, max_rows=1)
-    all_th.append(tmp)
-    tmp = np.loadtxt(outDir+'AnatomicalStats/Stats_rh_'+name[:-1]+'.txt', skiprows=1, usecols=2, max_rows=1)
-    all_th.append(tmp)
-
-print('CROSS RUNS:')
-print('Mean thickness: ', np.mean(all_th), ' +- std ', np.std(all_th))
-print('20 percent: ', 0.2*np.mean(all_th))
-print('4 percent: ', 0.04*np.mean(all_th))
-
-
-# compute for longitudinal scans:
-for name in names:
-    subprocess.run('mris_anatomical_stats -log '+outDir+'AnatomicalStats/Stats_'+name[:-1]+'long.txt '+name[:-1]+'.long.X_BASE_'+name[:-1]+ ' lh', shell=True)
-    subprocess.run('mris_anatomical_stats -log '+outDir+'AnatomicalStats/Stats_rh_'+name[:-1]+'long.txt '+name[:-1]+'.long.X_BASE_'+name[:-1]+  ' rh', shell=True)
-    a=1
-
-#now load all data:
-all_th = []
-for name in names:
-    tmp = np.loadtxt(outDir+'AnatomicalStats/Stats_'+name[:-1]+'long.txt', skiprows=1, usecols=2)
-    all_th.append(tmp)
-    tmp = np.loadtxt(outDir+'AnatomicalStats/Stats_rh_'+name[:-1]+'long.txt', skiprows=1, usecols=2)
-    all_th.append(tmp)
-
-print('LONGITUDINAL RUNS:')
-print('Mean thickness: ', np.mean(all_th), ' +- std ', np.std(all_th))
-print('20 percent: ', 0.2*np.mean(all_th))
-print('4 percent: ', 0.04*np.mean(all_th))
+def load_rms_lookup(root):
+    '''
+    Returns {(sub, 'off'|'on', 'run-01'|'run-02'): RMS_displacement}, read
+    from the mprage motion metrics analysis_motion_data.py already wrote
+    under derivatives/results/Motion_Estimates*.
+    '''
+    lookup = {}
+    for run in ('run-01', 'run-02'):
+        pattern = os.path.join(root, 'derivatives/results',
+                                f'Motion_EstimatesMotionMetrics_{run}', 'mprage_*.txt')
+        files = glob.glob(pattern)
+        if not files:
+            raise FileNotFoundError(
+                f"No motion metrics found matching {pattern}. Run "
+                "analysis_motion_data.py (new_calc=True) first -- see "
+                "step 2 of the top-level README.")
+        f = SortFiles(files)[0]
+        data = np.loadtxt(f, skiprows=1)
+        if data.shape[0] != len(ALL_SUBJECTS):
+            raise ValueError(f"{f} has {data.shape[0]} rows, expected {len(ALL_SUBJECTS)}")
+        for i, sub in enumerate(ALL_SUBJECTS):
+            lookup[(sub, 'off', run)] = data[i, 0]   # RMS_Off
+            lookup[(sub, 'on', run)] = data[i, 3]    # RMS_On
+    return lookup
 
 
+def rms_for_condition(rms_lookup, sub, pmc, run):
+    status = 'off' if pmc == 'pmcoff' else 'on'
+    # nod_off_reac/nod_on_reac share the same physical motion (and hence
+    # the same tracked RMS) as nod_off/nod_on -- reacquisition changes the
+    # reconstruction, not the motion that was tracked.
+    return rms_lookup[(sub, status, run)]
 
 
-''' (5) GLM analysis cross-sectional runs'''
+# ---------------------------------------------------------------------------
+# FreeSurfer command execution
+# ---------------------------------------------------------------------------
 
-run = True
-if run == True:
+def run_fs(cmd, freesurfer_home, subjects_dir, omp_threads=1, log_file=None):
+    '''Runs a FreeSurfer command with the environment SetUpFreeSurfer.sh would set.'''
+    setup = (f'export FREESURFER_HOME={freesurfer_home}; '
+              f'source {freesurfer_home}/SetUpFreeSurfer.sh > /dev/null 2>&1; '
+              f'export SUBJECTS_DIR={subjects_dir}; '
+              f'export OMP_NUM_THREADS={omp_threads}; ')
+    full_cmd = ['bash', '-c', setup + cmd]
+    if log_file:
+        with open(log_file, 'a') as f:
+            f.write(f'\n=== {cmd} ===\n')
+            f.flush()
+            return subprocess.run(full_cmd, stdout=f, stderr=subprocess.STDOUT).returncode
+    return subprocess.run(full_cmd).returncode
 
-    '''Create FSGD file / design matrix for scans without reacquisition: '''
-    #RMS for MoCo Off still:
-    descr = ['ON_STILL_', 'ON_NOD_',  'OFF_NOD_', 'ON_SHAKE_', 'OFF_SHAKE_']
-    motion = ['STILL', 'NOD', 'NOD', 'SHAKE', 'SHAKE']
-    files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_STILL/T1_MPR*.txt')
-    file = SortFiles(files)[0]
-    metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
-    subj = []
-    for i in range(1,10):
-        subj.append('HC_0'+str(i)+'/')
-    for i in range(10,20):
-        subj.append('HC_'+str(i)+'/')
-    for i in range(20,23):
-        subj.append('HC_'+str(i)+'/')
-    subj = np.array(subj)
 
-    for d, m in zip(descr, motion):
-        lines = []
-        files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_'+m+'/T1_MPR*.txt')
-        files = [f for f in files if 'mid' not in f]    # sort out all files 
-        # where displacement was caluclated relative to mid of acquisition
-        file = SortFiles(files)[0]
-        if d[:2] == 'OF':
-            metrics = np.loadtxt(file, unpack=True, usecols=0)
-        if d[:2] == 'ON':
-            metrics = np.loadtxt(file, unpack=True, usecols=3)
+def ensure_fsaverage(freesurfer_home, subjects_dir):
+    target = os.path.join(subjects_dir, 'fsaverage')
+    if not os.path.exists(target):
+        src = os.path.join(freesurfer_home, 'subjects', 'fsaverage')
+        os.makedirs(subjects_dir, exist_ok=True)
+        os.symlink(src, target)
 
-        for name in names:
-            s = np.where(subj==name)[0]
-            RMS_ref = metrics_ref[s]
-            RMS = metrics[s]
 
-            lines.append('Input '+name+' Main '+str(RMS_ref[0]))
-            if 'STILL' in d:
-                lines.append('Input X_'+d+name+' Main '+str(RMS[0]))
+# ---------------------------------------------------------------------------
+# Stage 1: recon-all (the slow part)
+# ---------------------------------------------------------------------------
+
+def recon_all_job(root, freesurfer_home, subjects_dir, sub, condition_key,
+                   pmc, run, reac, threads, log_dir):
+    fs_id = fs_subject_id(sub, condition_key)
+    done_marker = os.path.join(subjects_dir, fs_id, 'scripts', 'recon-all.done')
+    if os.path.exists(done_marker):
+        return (fs_id, 'skipped (already done)')
+
+    nifti = nifti_path(root, sub, pmc, run, reac)
+    if not os.path.exists(nifti):
+        return (fs_id, f'ERROR: missing input {nifti}')
+
+    log_file = os.path.join(log_dir, f'{fs_id}.log')
+    cmd = f'recon-all -i {nifti} -s {fs_id} -all -parallel'
+    rc = run_fs(cmd, freesurfer_home, subjects_dir, omp_threads=threads, log_file=log_file)
+    ok = os.path.exists(done_marker)
+    if ok:
+        return (fs_id, 'done')
+    return (fs_id, f'FAILED (exit {rc}, see {log_file})')
+
+
+def stage_recon(root, freesurfer_home, subjects_dir, subjects, jobs, threads_per_job):
+    log_dir = os.path.join(subjects_dir, '..', 'recon_all_logs')
+    log_dir = os.path.normpath(log_dir)
+    os.makedirs(log_dir, exist_ok=True)
+    ensure_fsaverage(freesurfer_home, subjects_dir)
+
+    tasks = []
+    for sub in subjects:
+        for key, pmc, run, reac in [REFERENCE] + CONDITIONS:
+            tasks.append((sub, key, pmc, run, reac))
+
+    total_cores = jobs * threads_per_job
+    print(f'{len(tasks)} recon-all jobs queued '
+          f'({jobs} concurrent x {threads_per_job} threads/job = {total_cores} cores)')
+
+    results = []
+    with ThreadPoolExecutor(max_workers=jobs) as ex:
+        futures = {
+            ex.submit(recon_all_job, root, freesurfer_home, subjects_dir,
+                      sub, key, pmc, run, reac, threads_per_job, log_dir): (sub, key)
+            for sub, key, pmc, run, reac in tasks
+        }
+        for fut in as_completed(futures):
+            fs_id, status = fut.result()
+            print(f'[{time.strftime("%H:%M:%S")}] {fs_id}: {status}', flush=True)
+            results.append((fs_id, status))
+
+    failed = [r for r in results if 'FAILED' in r[1] or 'ERROR' in r[1]]
+    print(f'\nrecon-all stage done: {len(results)-len(failed)}/{len(results)} ok.')
+    if failed:
+        print(f'{len(failed)} FAILED/missing -- see logs under {log_dir}:')
+        for fs_id, status in failed:
+            print(f'  {fs_id}: {status}')
+    return len(failed) == 0
+
+
+# ---------------------------------------------------------------------------
+# Stage 2: group GLM analysis
+# ---------------------------------------------------------------------------
+
+def write_fsgd(condition_key, pmc, run, subjects, rms_lookup, out_dir):
+    lines = []
+    for sub in subjects:
+        rms_ref = rms_for_condition(rms_lookup, sub, REFERENCE[1], REFERENCE[2])
+        rms_cond = rms_for_condition(rms_lookup, sub, pmc, run)
+        lines.append(f'Input {fs_subject_id(sub, "ref")} Main {rms_ref}')
+        lines.append(f'Input {fs_subject_id(sub, condition_key)} Main {rms_cond}')
+
+    header = 'GroupDescriptorFile 1\nMeasurementName thickness\nClass Main\nVariables RMS'
+    fsgd_path = os.path.join(out_dir, f'{condition_key}.fsgd')
+    with open(fsgd_path, 'w') as f:
+        f.write(header + '\n')
+        f.write('\n'.join(lines) + '\n')
+    return fsgd_path
+
+
+def write_contrast(out_dir):
+    '''
+    A single-class FSGD with one continuous variable (RMS) has a 2-column
+    design matrix: [offset, RMS-slope]. This contrast tests the RMS slope.
+    '''
+    path = os.path.join(out_dir, 'Avg-thickness-RMS-Cor.mtx')
+    with open(path, 'w') as f:
+        f.write('0 1\n')
+    return path
+
+
+def stage_glm(root, freesurfer_home, subjects_dir, subjects, rms_lookup, out_dir):
+    os.makedirs(out_dir, exist_ok=True)
+    ensure_fsaverage(freesurfer_home, subjects_dir)
+    contrast_path = write_contrast(out_dir)
+
+    sig_fdr_paths = {}
+    for condition_key, pmc, run, reac in CONDITIONS:
+        print(f'--- {condition_key} ---', flush=True)
+        fsgd_path = write_fsgd(condition_key, pmc, run, subjects, rms_lookup, out_dir)
+
+        hemi_fdr = {}
+        for hemi in ('lh', 'rh'):
+            thick00 = os.path.join(out_dir, f'{hemi}.{condition_key}.thickness.00.mgh')
+            thick10 = os.path.join(out_dir, f'{hemi}.{condition_key}.thickness.10.mgh')
+            glmdir = os.path.join(out_dir, f'{hemi}.{condition_key}.glmdir')
+
+            run_fs(f'mris_preproc --fsgd {fsgd_path} --target fsaverage --hemi {hemi} '
+                   f'--meas thickness --out {thick00}', freesurfer_home, subjects_dir)
+            run_fs(f'mri_surf2surf --hemi {hemi} --s fsaverage --sval {thick00} '
+                   f'--fwhm 10 --cortex --tval {thick10}', freesurfer_home, subjects_dir)
+            run_fs(f'mri_glmfit --y {thick10} --fsgd {fsgd_path} --C {contrast_path} '
+                   f'--surf fsaverage {hemi} --cortex --glmdir {glmdir}',
+                   freesurfer_home, subjects_dir)
+
+            sig = os.path.join(glmdir, 'Avg-thickness-RMS-Cor', 'sig.mgh')
+            sig_fdr = os.path.join(glmdir, 'Avg-thickness-RMS-Cor', 'sig_fdr.mgh')
+            hemi_fdr[hemi] = (sig, sig_fdr)
+
+        # FDR correction across both hemispheres together, as in the manuscript
+        (lh_sig, lh_fdr), (rh_sig, rh_fdr) = hemi_fdr['lh'], hemi_fdr['rh']
+        run_fs(f'mri_fdr --i {lh_sig} nomask {lh_fdr} --i {rh_sig} nomask {rh_fdr} --fdr 0.05',
+               freesurfer_home, subjects_dir)
+
+        sig_fdr_paths[condition_key] = {'lh': lh_fdr, 'rh': rh_fdr}
+
+    return sig_fdr_paths
+
+
+# ---------------------------------------------------------------------------
+# Stage 3: composite figure (style of Fig. 8a)
+# ---------------------------------------------------------------------------
+
+def stage_plot(subjects_dir, out_dir, out_path):
+    try:
+        from nilearn import plotting as nlp
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print('nilearn is not installed -- skipping figure generation.\n'
+              'Install it with: pip install nilearn\n'
+              'The underlying sig_fdr.mgh significance maps are still available '
+              f'under {out_dir}/{{lh,rh}}.<condition>.glmdir/Avg-thickness-RMS-Cor/, '
+              'and can be viewed with e.g. freeview.')
+        return
+
+    fsaverage_surf = os.path.join(subjects_dir, 'fsaverage', 'surf')
+    n_cond = len(CONDITIONS)
+    fig, axes = plt.subplots(2, n_cond, figsize=(3.2 * n_cond, 6.4),
+                              subplot_kw={'projection': '3d'})
+
+    for col, (condition_key, *_rest) in enumerate(CONDITIONS):
+        sig_fdr = os.path.join(out_dir, f'lh.{condition_key}.glmdir',
+                                'Avg-thickness-RMS-Cor', 'sig_fdr.mgh')
+        mesh = os.path.join(fsaverage_surf, 'lh.inflated')
+        bg = os.path.join(fsaverage_surf, 'lh.curv')
+
+        for row, view in enumerate(['lateral', 'medial']):
+            ax = axes[row, col]
+            if os.path.exists(sig_fdr):
+                nlp.plot_surf_stat_map(
+                    mesh, sig_fdr, hemi='left', view=view, bg_map=bg,
+                    threshold=1.301,  # -log10(0.05)
+                    cmap='cold_hot', colorbar=(col == n_cond - 1 and row == 0),
+                    axes=ax, figure=fig,
+                )
             else:
-                lines.append('Input X_'+d+'RR_'+name+' Main '+str(RMS[0]))
-        print(d + ' done')
+                ax.text2D(0.5, 0.5, 'missing', ha='center', transform=ax.transAxes)
+                ax.axis('off')
+            if row == 0:
+                ax.set_title(CONDITION_TITLES[condition_key], fontsize=10)
 
-        save = np.array(lines)
-        head = 'GroupDescriptorFile 1 \nMeasurementName thickness \nClass Main'
-        head += ' \nVariables RMS'
-        np.savetxt(outDir+'MOCO_'+d+'.fsgd', save, header=head, comments='', fmt='%s')
-
-
-    '''Create FSGD file / design matrix for scans with reacquisition: '''
-    descr = ['ON_NOD_', 'ON_SHAKE_', 'OFF_NOD_', 'OFF_SHAKE_']
-    motion = ['NOD', 'SHAKE', 'NOD', 'SHAKE']
-    files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_STILL/T1_MPR*.txt')
-    file = SortFiles(files)[0]
-    metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
-    subj = []
-    for i in range(1,10):
-        subj.append('HC_0'+str(i)+'/')
-    for i in range(10,20):
-        subj.append('HC_'+str(i)+'/')
-    for i in range(20,23):
-        subj.append('HC_'+str(i)+'/')
-    subj = np.array(subj)
-
-    for d, m in zip(descr, motion):
-        lines = []
-        files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_'+m+'/T1_MPR*.txt')
-        file = SortFiles(files)[0]
-        if d[:2] == 'OF':
-            metrics = np.loadtxt(file, unpack=True, usecols=0)
-        if d[:2] == 'ON':
-            metrics = np.loadtxt(file, unpack=True, usecols=3)
-
-        for name in names:
-            s = np.where(subj==name)[0]
-            RMS_ref = metrics_ref[s]
-            RMS = metrics[s]
-
-            lines.append('Input '+name+' Main '+str(RMS_ref[0]))
-            lines.append('Input X_'+d+name+' Main '+str(RMS[0]))
-        print(d + ' done')
-
-        save = np.array(lines)
-        head = 'GroupDescriptorFile 1 \nMeasurementName thickness \nClass Main'
-        head += ' \nVariables RMS'
-        np.savetxt(outDir+'MOCO_'+d+'_REAC_ON.fsgd', save, header=head, comments='', fmt='%s')
+    fig.suptitle('Cortical thickness vs. RMS motion (left hemisphere, FDR<0.05)',
+                  fontsize=13)
+    fig.savefig(out_path, dpi=200, bbox_inches='tight')
+    print('Saved', out_path)
 
 
+# ---------------------------------------------------------------------------
 
-    '''Assemble the data: '''
-    # 10 to 15 minutes
-    descr = ['MOCO_ON_STILL_', 'MOCO_ON_NOD_',  'MOCO_OFF_NOD_', 'MOCO_ON_SHAKE_', 'MOCO_OFF_SHAKE_', 'MOCO_ON_NOD__REAC_ON', 'MOCO_OFF_NOD__REAC_ON', 'MOCO_ON_SHAKE__REAC_ON',  'MOCO_OFF_SHAKE__REAC_ON']
-    for d in descr:
-        # lh
-        # resample to fsaverage and put all in one file:
-        subprocess.run('mris_preproc --fsgd '+outDir+d+'.fsgd --target fsaverage --hemi lh --meas thickness --out '+outDir+'lh.'+d+'.thickness.00.mgh', shell=True)
-        # smooth each subject's resampled data by 10mm FWHM
-        subprocess.run('mri_surf2surf --hemi lh --s fsaverage --sval '+outDir+'lh.'+d+'.thickness.00.mgh --fwhm 10 --cortex --tval '+outDir+'lh.'+d+'.thickness.10.mgh', shell=True)
+def main():
+    parser = argparse.ArgumentParser(description=__doc__,
+                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--subjects', nargs='+', default=ALL_SUBJECTS,
+                         help='subjects to include (default: all 22)')
+    parser.add_argument('--jobs', type=int, default=5,
+                         help='concurrent recon-all jobs (default 5)')
+    parser.add_argument('--threads-per-job', type=int, default=2,
+                         help='OMP_NUM_THREADS per recon-all job (default 2; '
+                              'jobs*threads-per-job defaults to 10 cores total)')
+    parser.add_argument('--stage', choices=['recon', 'glm', 'plot', 'all'], default='all',
+                         help='run only part of the pipeline (default: all)')
+    args = parser.parse_args()
 
-        # rh
-        # resample to fsaverage and put all in one file:
-        subprocess.run('mris_preproc --fsgd '+outDir+d+'.fsgd --target fsaverage --hemi rh --meas thickness --out '+outDir+'rh.'+d+'.thickness.00.mgh', shell=True)
-        # smooth each subject's resampled data by 10mm FWHM
-        subprocess.run('mri_surf2surf --hemi rh --s fsaverage --sval '+outDir+'rh.'+d+'.thickness.00.mgh --fwhm 10 --cortex --tval '+outDir+'rh.'+d+'.thickness.10.mgh', shell=True)
+    root = os.environ.get('MOCO_DATASET_PATH')
+    freesurfer_home = os.environ.get('FREESURFER_HOME')
+    if not root:
+        sys.exit('MOCO_DATASET_PATH is not set.')
+    if not freesurfer_home:
+        sys.exit('FREESURFER_HOME is not set.')
 
+    subjects_dir = os.path.join(root, 'derivatives/results/freesurfer_subjects/')
+    glm_dir = os.path.join(root, 'derivatives/results/cort_thickness/')
+    plot_dir = os.path.join(root, 'derivatives/results/plots/')
+    os.makedirs(subjects_dir, exist_ok=True)
+    os.makedirs(glm_dir, exist_ok=True)
+    os.makedirs(plot_dir, exist_ok=True)
 
+    if args.stage in ('recon', 'all'):
+        ok = stage_recon(root, freesurfer_home, subjects_dir, args.subjects,
+                          args.jobs, args.threads_per_job)
+        if not ok and args.stage == 'all':
+            sys.exit('Some recon-all jobs failed -- fix and rerun with --stage recon '
+                      'before continuing to --stage glm.')
 
-    '''GLM Analysis: '''
-    for d in descr:
-        print(d)
-        # fit glm lh
-        subprocess.run('mri_glmfit --y '+outDir+'lh.'+d+'.thickness.10.mgh --fsgd '+outDir+d+'.fsgd --C '+outDir+'lh-Avg-thickness-RMS-Cor.mtx --surf fsaverage lh --cortex --glmdir '+outDir+'lh.'+d+'.glmdir', shell=True)
+    if args.stage in ('glm', 'all'):
+        rms_lookup = load_rms_lookup(root)
+        stage_glm(root, freesurfer_home, subjects_dir, args.subjects, rms_lookup, glm_dir)
 
-        # fit glm rh
-        subprocess.run('mri_glmfit --y '+outDir+'rh.'+d+'.thickness.10.mgh --fsgd '+outDir+d+'.fsgd --C '+outDir+'rh-Avg-thickness-RMS-Cor.mtx --surf fsaverage rh --cortex --glmdir '+outDir+'rh.'+d+'.glmdir', shell=True)
-
-        # fdr correction (lh and rh together):
-        subprocess.run('mri_fdr --i '+outDir+'lh.'+d+'.glmdir/lh-Avg-thickness-RMS-Cor/sig.mgh nomask '+outDir+'lh.'+d+'.glmdir/lh-Avg-thickness-RMS-Cor/sig_fdr.mgh --i '+outDir+'rh.'+d+'.glmdir/rh-Avg-thickness-RMS-Cor/sig.mgh nomask '+outDir+'rh.'+d+'.glmdir/rh-Avg-thickness-RMS-Cor/sig_fdr.mgh --fdr 0.05', shell=True)
-
-        # view the results (significance maps and beta - change)- opens new freeview window for each!!!
-        folder = outDir+'lh.'+d+'.glmdir/lh-Avg-thickness-RMS-Cor/'
-        subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/lh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'sig_fdr.mgh:overlay_threshold=1.301,6 -viewport 3d', shell=True)
-        folder = outDir+'lh.'+d+'.glmdir/'
-        subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/lh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'beta.mgh:overlay_threshold=0.04,0.2 -viewport 3d', shell=True)
-
-        # rh
-        folder = outDir+'rh.'+d+'.glmdir/rh-Avg-thickness-RMS-Cor/'
-        #subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/rh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'sig_fdr.mgh:overlay_threshold=1.301,6 -viewport 3d', shell=True)
-        folder = outDir+'rh.'+d+'.glmdir/'
-        #subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/rh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'beta.mgh:overlay_threshold=0.04,0.2 -viewport 3d', shell=True)
-
-
-
-'''  (6) GLM analysis longitudinal runs '''
-
-run = False
-if run == True:
-
-    '''Create FSGD file / design matrix for scans without reacquisition: '''
-    #RMS for MoCo Off still:
-    descr = ['ON_STILL_', 'ON_NOD_',  'OFF_NOD_', 'ON_SHAKE_', 'OFF_SHAKE_']
-    motion = ['STILL', 'NOD', 'NOD', 'SHAKE', 'SHAKE']
-    files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_STILL/T1_MPR*.txt')
-    file = SortFiles(files)[0]
-    metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
-    subj = []
-    for i in range(1,10):
-        subj.append('HC_0'+str(i)+'/')
-    for i in range(10,20):
-        subj.append('HC_'+str(i)+'/')
-    for i in range(20,23):
-        subj.append('HC_'+str(i)+'/')
-    subj = np.array(subj)
-
-    for d, m in zip(descr, motion):
-        lines = []
-        files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_'+m+'/T1_MPR*.txt')
-        file = SortFiles(files)[0]
-        if d[:2] == 'OF':
-            metrics = np.loadtxt(file, unpack=True, usecols=0)
-        if d[:2] == 'ON':
-            metrics = np.loadtxt(file, unpack=True, usecols=3)
-
-        for name in names:
-            s = np.where(subj==name)[0]
-            RMS_ref = metrics_ref[s]
-            RMS = metrics[s]
-
-            lines.append('Input '+name[:-1]+'.long.X_BASE_'+name[:-1]+' Main '+str(RMS_ref[0]))
-            if 'STILL' in d:
-                lines.append('Input X_'+d+name[:-1]+'.long.X_BASE_'+name[:-1]+' Main '+str(RMS[0]))
-            else:
-                lines.append('Input X_'+d+'RR_'+name[:-1]+'.long.X_BASE_'+name[:-1]+' Main '+str(RMS[0]))
-        print(d + ' done')
-
-        save = np.array(lines)
-        head = 'GroupDescriptorFile 1 \nMeasurementName thickness \nClass Main'
-        head += ' \nVariables RMS'
-        np.savetxt(outDir+'MOCO_'+d+'long.fsgd', save, header=head, comments='', fmt='%s')
+    if args.stage in ('plot', 'all'):
+        stage_plot(subjects_dir, glm_dir, os.path.join(plot_dir, 'Fig8_Cortical_Thickness.png'))
 
 
-
-    '''Assemble the data: '''
-    # 10 to 15 minutes
-    descr = ['MOCO_ON_STILL_long', 'MOCO_ON_NOD_long',  'MOCO_OFF_NOD_long', 'MOCO_ON_SHAKE_long', 'MOCO_OFF_SHAKE_long']
-    for d in descr:
-        # lh
-        # resample to fsaverage and put all in one file:
-        subprocess.run('mris_preproc --fsgd '+outDir+d+'.fsgd --target fsaverage --hemi lh --meas thickness --out '+outDir+'lh.'+d+'.thickness.00.mgh', shell=True)
-        # smooth each subject's resampled data by 10mm FWHM
-        subprocess.run('mri_surf2surf --hemi lh --s fsaverage --sval '+outDir+'lh.'+d+'.thickness.00.mgh --fwhm 10 --cortex --tval '+outDir+'lh.'+d+'.thickness.10.mgh', shell=True)
-
-        # rh
-        # resample to fsaverage and put all in one file:
-        subprocess.run('mris_preproc --fsgd '+outDir+d+'.fsgd --target fsaverage --hemi rh --meas thickness --out '+outDir+'rh.'+d+'.thickness.00.mgh', shell=True)
-        # smooth each subject's resampled data by 10mm FWHM
-        subprocess.run('mri_surf2surf --hemi rh --s fsaverage --sval '+outDir+'rh.'+d+'.thickness.00.mgh --fwhm 10 --cortex --tval '+outDir+'rh.'+d+'.thickness.10.mgh', shell=True)
-
-
-
-    '''GLM Analysis: '''
-    for d in descr:
-        print(d)
-        # fit glm lh
-        subprocess.run('mri_glmfit --y '+outDir+'lh.'+d+'.thickness.10.mgh --fsgd '+outDir+d+'.fsgd --C '+outDir+'lh-Avg-thickness-RMS-Cor.mtx --surf fsaverage lh --cortex --glmdir '+outDir+'lh.'+d+'.glmdir', shell=True)
-
-        # fit glm rh
-        subprocess.run('mri_glmfit --y '+outDir+'rh.'+d+'.thickness.10.mgh --fsgd '+outDir+d+'.fsgd --C '+outDir+'rh-Avg-thickness-RMS-Cor.mtx --surf fsaverage rh --cortex --glmdir '+outDir+'rh.'+d+'.glmdir', shell=True)
-
-        # fdr correction (lh and rh together):
-        subprocess.run('mri_fdr --i '+outDir+'lh.'+d+'.glmdir/lh-Avg-thickness-RMS-Cor/sig.mgh nomask '+outDir+'lh.'+d+'.glmdir/lh-Avg-thickness-RMS-Cor/sig_fdr.mgh --i '+outDir+'rh.'+d+'.glmdir/rh-Avg-thickness-RMS-Cor/sig.mgh nomask '+outDir+'rh.'+d+'.glmdir/rh-Avg-thickness-RMS-Cor/sig_fdr.mgh --fdr 0.05', shell=True)
-
-
-        # view the results (significance maps and beta - change)- opens new freeview window for each!!!
-        folder = outDir+'lh.'+d+'.glmdir/lh-Avg-thickness-RMS-Cor/'
-        subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/lh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'sig_fdr.mgh:overlay_threshold=1.301,6 -viewport 3d', shell=True)
-        folder = outDir+'lh.'+d+'.glmdir/'
-        subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/lh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'beta.mgh:overlay_threshold=0.04,0.2 -viewport 3d', shell=True)
-
-
-        folder = outDir+'rh.'+d+'.glmdir/rh-Avg-thickness-RMS-Cor/'
-        subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/rh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'sig_fdr.mgh:overlay_threshold=1.301,6 -viewport 3d', shell=True)
-        folder = outDir+'rh.'+d+'.glmdir/'
-        subprocess.run('freeview -f $SUBJECTS_DIR/fsaverage/surf/rh.inflated:annot=aparc.annot:annot_outline=1:overlay='+folder+'beta.mgh:overlay_threshold=0.04,0.2 -viewport 3d', shell=True)
-
-
-
-
-
+if __name__ == '__main__':
+    main()

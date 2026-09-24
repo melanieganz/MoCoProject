@@ -29,7 +29,7 @@ Furthermore, all metrics from the repository https://github.com/melanieganz/MoCo
 ## Code used for analysing the data:
 * `analysis_img_quality.py`: registers each sequence to its ground-truth scan (via FreeSurfer's `bbregister`/`robust_register`) and calculates image quality metrics (SSIM, PSNR, Tenengrad, AES, gradient/image entropy, CoEnt) on the brain-masked images [1].
 * `analysis_motion_data.py`: calculates motion metrics (RMS/median/maximum displacement) for each sequence and subject, statistically compares scan types, and optionally plots them.
-* `analysis_cort_thickness.py`: generates thickness maps for each subject and each motion type / motion correction setting and fits general linear models to the thickness maps. **Not currently runnable against the OpenNeuro release**: it still depends on a longitudinal FreeSurfer processing scheme and directory layout from the original internal analysis pipeline that has no counterpart in the public dataset. This is a known, unresolved limitation, distinct from the path-portability fixes elsewhere in this repo.
+* `analysis_cort_thickness.py`: reproduces Fig. 8 (motion-related cortical thickness changes) -- FreeSurfer cross-sectional `recon-all` per subject/condition, a paired vertex-wise GLM (thickness vs. RMS motion) against the "Still without PMC" reference for each of Fig. 8's five conditions, FDR correction, and a composite figure. Rewritten from scratch this way because the original script depended on a longitudinal FreeSurfer stream and directory layout from the internal analysis pipeline that has no counterpart in the public dataset (and doesn't match what the manuscript's own methods describe using); see the script's docstring for the exact conditions and a noted simplification versus the published method. Runs in parallel across recon-all jobs (`--jobs`/`--threads-per-job`); recon-all is the slow part (hours per scan) so budget accordingly.
 * `img_quality_metrics.py`: functions for calculating the image quality metrics.
 * `motion_estimates.py`: functions for loading the tracking data corresponding to a specific scan and for calculating motion metrics.
 * `recon_register.py`: functions for running the FreeSurfer command `recon-all` and for registering images with `bbregister`[2] and `robust_register`[3].
@@ -60,7 +60,13 @@ The analysis can be re-run in the following order. All steps read and write unde
     Note: `motion_estimates.py` reads scans' acquisition times from the BIDS JSON sidecars rather than the DICOM header.
 
 3) Analysis of cortical thickness maps:
-    Run the script `analysis_cort_thickness.py`. The motion data needs to be analysed first. **Not currently runnable against the OpenNeuro release** -- see the note above.
+    The motion data needs to be analysed first (step 2). Then run:
+    ```bash
+    export MOCO_DATASET_PATH=/path/to/ds004332-download/
+    export FREESURFER_HOME=/path/to/freesurfer
+    python3 analysis_cort_thickness.py
+    ```
+    `recon-all` is run on 6 scans per subject (22 subjects by default), so this is by far the slowest step -- realistically hours to days depending on available cores. Use `--jobs`/`--threads-per-job` to control how many `recon-all` runs execute concurrently (defaults to 5 jobs x 2 threads = 10 cores), `--subjects` to run a subset, and `--stage {recon,glm,plot}` to resume partway through (the `recon-all` stage itself is also resumable across reruns: already-completed subjects/conditions are skipped). The final figure needs `nilearn` (`pip install nilearn`); without it, the significance maps are still written out and can be viewed with `freeview`.
 
 4) Generate the remaining plots for the manuscript:
     Run the script `plot_generation_rewrite.py`. It has no on/off flags: running it regenerates all four remaining figures (three image-quality boxplots and the ADC histogram) unconditionally, from whatever image-quality metrics and observer scores are present under `derivatives/`.
