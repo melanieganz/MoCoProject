@@ -36,16 +36,30 @@ request** (not open like the OpenNeuro release):
     FLAIR/DWI/T2*) and as the base for the output directory
     (`$MOCO_DATASET_PATH/derivatives/results/Motion_Estimates/`).
   - `PUBLICNEURO_RAW_PATH` -- path to your local copy of the PublicnEUro raw
-    data release.
+    data release (the directory that directly contains `sourcedata/`).
 
-### Subject numbering
+### Layout of the raw data
 
-The raw PublicnEUro data is organized as `Subject_01/`, `Subject_02/`, ...,
-which is not the same naming as this repo's OpenNeuro-side `sub-01/`,
-`sub-02/`, ... . `get_scan_end.py` maps between the two via the
-`raw_to_bids_subject()` helper at the top of the script, assuming the two
-numberings correspond 1:1 in the same order (`Subject_01/` &rarr; `sub-01/`,
-etc.) -- confirmed correct.
+PublicnEUro is organized just like OpenNeuro: a `sourcedata/` folder holding
+one subject directory per subject, each holding that subject's raw `.h5`
+files directly (one file per acquisition), e.g.:
+
+```
+sourcedata/
+  sub-001/
+  sub-002/
+  sub-003/
+    meas_MID00132_FID18328_TCLmoco_off_still_T2_flair_sag_3D_tsevfl_harness_changed.h5
+    meas_MID00019_FID15562_TCLmoco_off_nod_t1_mpr_3d_sag_p2_iso.h5
+    meas_MID00059_FID15602_TCLmoco_on_still_ep2d_diff_exttracking.h5
+    ...
+```
+
+The one difference from this repo's OpenNeuro side: subject IDs are
+zero-padded to 3 digits (`sub-001/`) rather than 2 (`sub-01/`). Subject
+numbering otherwise corresponds 1:1 between the two (confirmed) --
+`get_scan_end.py` converts between the two paddings via the
+`raw_to_bids_subject()` helper.
 
 ### Usage
 

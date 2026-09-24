@@ -35,8 +35,9 @@ os.makedirs(out_dir, exist_ok=True)
 
 def raw_to_bids_subject(raw_subject_dir):
     '''
-    Maps a raw PublicnEUro subject directory name (e.g. 'Subject_01/')
-    to the corresponding OpenNeuro/BIDS subject ID (e.g. 'sub-01/').
+    Maps a raw PublicnEUro sourcedata subject directory name (e.g.
+    'sub-003/', zero-padded to 3 digits) to the corresponding
+    OpenNeuro/BIDS subject ID (e.g. 'sub-03/', zero-padded to 2 digits).
 
     Raw subject numbering matches the OpenNeuro ds004332 numbering 1:1
     in the same order (confirmed).
@@ -45,13 +46,12 @@ def raw_to_bids_subject(raw_subject_dir):
     return f'sub-{int(num):02d}/'
 
 
-subdir = []
-for i in range(1, 10):
-    subdir.append('Subject_0'+str(i)+'/')
-for i in range(10, 20):
-    subdir.append('Subject_'+str(i)+'/')
-for i in range(20, 23):
-    subdir.append('Subject_'+str(i)+'/')
+# PublicnEUro's raw data is organized like OpenNeuro: a sourcedata/
+# folder holding one 3-digit-padded sub-XXX/ directory per subject,
+# with that subject's raw .h5 files directly inside it.
+raw_sourcedata = os.path.join(raw_root, 'sourcedata') if raw_root else None
+
+subdir = [f'sub-{i:03d}/' for i in range(1, 23)]
 sequs = ['T1_MPR', 'T2_FLAIR', 'T2_TSE', 'T1_TIRM', 'T2STAR', 'DIFF']
 
 
@@ -113,7 +113,7 @@ if get_scan_start:
                         parts[0] = parts[0].lower()
                         parts[1] = parts[1][0:1]+ parts[1][1:].lower()
 
-                    out_file = glob.glob(raw_root+sub+'/*'+parts[0]+'*'+parts[1]+'*.h5')[0]
+                    out_file = glob.glob(os.path.join(raw_sourcedata, sub) + '*'+parts[0]+'*'+parts[1]+'*.h5')[0]
 
                     # find studyTime:
                     dset = ismrmrd.Dataset(out_file[:-3]+'_2.h5', 'dataset', create_if_needed=False)
