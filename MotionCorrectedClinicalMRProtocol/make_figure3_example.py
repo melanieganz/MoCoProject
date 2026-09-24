@@ -1,12 +1,27 @@
 '''
 Reproduces a figure similar to the manuscript's Figure 3 ("Example images")
-for a single subject: motion curves for the MPR (shake) and FLAIR (nod)
+for a given subject: motion curves for the MPR (shake) and FLAIR (nod)
 acquisitions, plus example image pairs (without PMC/reacquisition vs. with
 PMC/reacquisition, where applicable) for T1_MPR, T2_FLAIR, T2_TSE, T1_TIRM,
 T2* and the TRACE-weighted DWI.
 
+No subject is named anywhere in the manuscript or repository for the
+original Figure 3, so by default this reproduces it for two subjects
+chosen out of the 7 subjects that have all 6 required sequences
+(sub-02, 03, 07, 12, 13, 15, 17 -- limited by FLAIR/DWI, which were only
+acquired in 10 of 22 subjects, and further by T2*, which is missing for
+3 of those 10):
+  - sub-02: the first of those 7 subjects by ID.
+  - sub-03: the one with the largest mean Tenengrad improvement between
+    "PMC off / reac off" and "PMC on / reac on", averaged over every
+    sequence/run that has both variants (MPR nod, MPR shake, FLAIR nod,
+    TSE nod, TIRM nod), computed from the metricsresults already
+    produced by analysis_img_quality.py.
+
 Usage:
-    python3 make_figure3_example.py sub-02
+    python3 make_figure3_example.py            # sub-02 and sub-03
+    python3 make_figure3_example.py sub-07      # only sub-07
+    python3 make_figure3_example.py sub-07 sub-12   # only those two
 '''
 import os
 import sys
@@ -136,9 +151,11 @@ def make_figure(subj):
 
     out_path = out_dir + f'Fig3_Example_{subj}.png'
     fig.savefig(out_path, bbox_inches='tight', dpi=200)
+    plt.close(fig)
     print('Saved', out_path)
 
 
 if __name__ == "__main__":
-    subj = sys.argv[1] if len(sys.argv) > 1 else "sub-02"
-    make_figure(subj)
+    subjects = sys.argv[1:] if len(sys.argv) > 1 else ["sub-02", "sub-03"]
+    for subj in subjects:
+        make_figure(subj)
