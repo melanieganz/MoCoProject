@@ -30,9 +30,9 @@ sequs = ['mprage', 't2tse', 't1tirm', 'flair', 't2star']
 
 
 
-save = '_2022_06_02'   
-new_calc = True
-plot = False
+save = '_2022_06_02'
+new_calc = False
+plot = True
 
 
 ''' (1) Calculate the metrics for each sequence and volunteer: '''
@@ -235,6 +235,7 @@ if plot:
             plt.figure(figsize=(10,10))
             plt.subplot(3,1,1)
         else:
+            fig_title = 'NOD'
             plt.figure(figsize=(13, 11.5))
 
             ax1=plt.subplot2grid((3,5), (0,0), colspan=4)
@@ -329,7 +330,7 @@ if plot:
         if mot == 'run-02':
             fig_title = 'SHAKE'
             ax4=plt.subplot2grid((3,5), (0,4))
-            ax1.get_shared_y_axes().join(ax1, ax4)
+            ax1.sharey(ax4)
             MakeBoxplot(RMS_s, colors)
             for i in range(len(mean_RMS_s)):
                 plt.plot(i+1, mean_RMS_s[i], '.', c=colors[i], ls='')
@@ -341,7 +342,7 @@ if plot:
             Show_Stars(np.array([p_values_cor_shake[0]]), ind_sh, np.arange(1, len(RMS)+1), max_RMS)
 
             ax5=plt.subplot2grid((3,5), (1,4))
-            ax2.get_shared_y_axes().join(ax2, ax5)
+            ax2.sharey(ax5)
             MakeBoxplot(median_s, colors)
             for i in range(len(mean_RMS_s)):
                 plt.plot(i+1, mean_med_s[i], '.', c=colors[i], ls='')
@@ -352,7 +353,7 @@ if plot:
             Show_Stars(np.array([p_values_cor_shake[1]]), ind_sh, np.arange(1, len(RMS)+1), max_med)
 
             ax6=plt.subplot2grid((3,5), (2,4))
-            ax3.get_shared_y_axes().join(ax3, ax6)
+            ax3.sharey(ax6)
             MakeBoxplot(maxim_s, colors)
             for i in range(0,2):
                 plt.plot(i+1, mean_max_s[i], '.', c=colors[i], ls='', label=labels[i])
@@ -365,7 +366,10 @@ if plot:
             Show_Stars(np.array([p_values_cor_shake[2]]), ind_sh, np.arange(1, len(RMS)+1), max_max)
 
         plt.subplots_adjust(hspace=0.3, wspace=0.4)
-        plt.savefig(out_dir+'Boxplot_'+mot+save, bbox_inches='tight', dpi=200)
+        plot_out_dir = os.path.join(root, "derivatives/results/plots") + "/"
+        os.makedirs(plot_out_dir, exist_ok=True)
+        plt.savefig(plot_out_dir + 'Fig2_Motion_Boxplot_' + mot + save + '.png',
+                    bbox_inches='tight', dpi=200)
         plt.show()
 
 
