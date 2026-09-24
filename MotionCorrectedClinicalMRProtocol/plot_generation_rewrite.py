@@ -19,11 +19,12 @@ matplotlib.rc('axes', edgecolor='black')
 
 
 root_dir = os.environ.get("MOCO_DATASET_PATH")
-out_dir = os.path.join(root_dir, "derivatives/results/plots")
+out_dir = os.path.join(root_dir, "derivatives/results/plots") + "/"
 in_dir_motion_estimates = os.path.join(root_dir, "derivatives/results/Motion_Estimates/")
 in_dir_metric_results = os.path.join(root_dir, "derivatives/results/metricsresults/")
 in_dir_observer_scores =  os.path.join(root_dir, "derivatives/observer_scores")
 out_dir_metrics = os.path.join(root_dir, "derivatives/results/metricsresults/")
+os.makedirs(out_dir, exist_ok=True)
 
 save = '_2022_05_27'
 
@@ -361,6 +362,10 @@ def draw_boxplot_1(seq_to_img_metrics, seq_to_df, dwi_rank_df, relevant_subseque
     plt.tight_layout()
     legend.get_frame().set_linewidth(2)
     plt.subplots_adjust(hspace=0.2, wspace=0.3)
+    plt.savefig(out_dir+'Boxplot_1'+save+'.tiff', format='tiff', bbox_inches='tight',
+                dpi=200)
+    plt.savefig(out_dir+'Boxplot_1'+save+'.png', format='png', bbox_inches='tight',
+                dpi=200)
     plt.show()
 
 
@@ -462,9 +467,13 @@ def draw_boxplot_2(relevant_sequences, sequence_to_relevant_subsequences):
     legend = plt.legend( loc='lower left', ncol=2, 
                     bbox_to_anchor=(0.25, -0.4), fontsize=12, 
                     frameon=True)
-    legend.get_frame().set_linewidth(2)        
+    legend.get_frame().set_linewidth(2)
 
     plt.subplots_adjust(hspace=0.2, wspace=0.3)
+    plt.savefig(out_dir+'Boxplot_2'+save+'.tiff', format='tiff', bbox_inches='tight',
+                dpi=200)
+    plt.savefig(out_dir+'Boxplot_2'+save+'.png', format='png', bbox_inches='tight',
+                dpi=200)
     plt.show()
 
 def get_observer_score_values_for_plotting(seq, relevant_subsequences, indices):
@@ -643,10 +652,14 @@ def draw_boxplot_3(relevant_sequences, seq_to_relevant_subsequences):
     legend = plt.legend( loc='lower left', ncol=2, 
                     bbox_to_anchor=(0.25, -0.4), fontsize=12, 
                     frameon=True)
-    legend.get_frame().set_linewidth(2)        
+    legend.get_frame().set_linewidth(2)
 
     plt.subplots_adjust(hspace=0.2, wspace=0.6)
 
+    plt.savefig(out_dir+'Boxplot_3'+save+'.tiff', format='tiff', bbox_inches='tight',
+                dpi=200)
+    plt.savefig(out_dir+'Boxplot_3'+save+'.png', format='png', bbox_inches='tight',
+                dpi=200)
     plt.show()
 
 def subplot_settings_plot_3(labels, i, ax, num_seqs=4):

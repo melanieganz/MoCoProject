@@ -64,8 +64,10 @@ def FullAnalysis(sub, nifti_dir, dwi_nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, o
         returns 0, when completed.
     
     '''
-    
-    
+
+    if not os.path.exists(outDir):
+        os.makedirs(outDir)
+
     '''Recon_all:'''
     # Run recon all:
     if recon_all:
@@ -209,48 +211,54 @@ def FullAnalysis(sub, nifti_dir, dwi_nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, o
 
 
 
-''' (1) Run analysis on prospectively corrected and uncorrected data:'''
-# define specific input parameters for the current run:
+if __name__ == "__main__":
+    ''' (1) Run analysis on prospectively corrected and uncorrected data:'''
+    # define specific input parameters for the current run:
 
-#Paths should be changed into a loop once we run for all subjects 
-#root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
-root = os.environ.get("MOCO_DATASET_PATH")
-# Path on Windows laptop '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
-# Path on Unix laptop '/home/melanie/Data/ds004332-download/'
-
-
-save = '2023_06_08'
-    
-    # Which steps to perform:
-    # by default we have performed registrations in FreeSurfer and provide those for you
-    # if wanted one could set recon_all and register to True and redo this analysis as well,
-    # but this would then entail running recon-all on all Still images and hence take a while
-
-    #Variables before subject
-
-recon_all = False
-register = False
-apply_transform_bm = False
-    
-# steps to always perform
-apply_transform = True
-metrics = True
-show_bm_reg = False
+    #Paths should be changed into a loop once we run for all subjects
+    #root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
+    root = os.environ.get("MOCO_DATASET_PATH")
+    # Path on Windows laptop '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
+    # Path on Unix laptop '/home/melanie/Data/ds004332-download/'
 
 
-subjs = [f"sub-{i:02d}" for i in range(1,23)]
+    save = '2023_06_08'
 
-for sub in subjs:
+        # Which steps to perform:
+        # by default we have performed registrations in FreeSurfer and provide those for you
+        # if wanted one could set recon_all and register to True and redo this analysis as well,
+        # but this would then entail running recon-all on all Still images and hence take a while
 
-    nifti_dir = root + sub + '/anat/'
-    bm_dir = root + 'derivatives/freesurfer/' + sub + '/anat/'
-    reg_dir = root + 'derivatives/freesurfer/' + sub + '/transforms/'
-    SUBJECTS_DIR = root + 'derivatives/freesurfer/' + sub + '/transforms/'
-    outDir = root + 'derivatives/results/registrations/' + sub + '/'
-    outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
-    dwi_nifti_dir = root + "derivatives/clinical_dwi/" + sub + "/anat/"
+        #Variables before subject
+
+    recon_all = False
+    register = False
+    apply_transform_bm = False
+
+    # steps to always perform
+    apply_transform = True
+    metrics = True
+    show_bm_reg = False
 
 
-    FullAnalysis(sub, nifti_dir, dwi_nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
+    subjs = [f"sub-{i:02d}" for i in range(1,23)]
+
+    for sub in subjs:
+
+        nifti_dir = root + sub + '/anat/'
+        bm_dir = root + 'derivatives/freesurfer/' + sub + '/anat/'
+        reg_dir = root + 'derivatives/freesurfer/' + sub + '/transforms/'
+        SUBJECTS_DIR = root + 'derivatives/freesurfer/' + sub + '/transforms/'
+        outDir = root + 'derivatives/results/registrations/' + sub + '/'
+        outDirMetrics = root + 'derivatives/results/metricsresults/' + sub + '/'
+        dwi_nifti_dir = root + "derivatives/clinical_dwi/" + sub + "/anat/"
+
+        # resume support: skip subjects whose metrics were already computed
+        # in a prior (possibly interrupted) run of this script.
+        if os.path.isdir(outDirMetrics) and len(os.listdir(outDirMetrics)) > 0:
+            print(f"Skipping {sub}: metrics already present in {outDirMetrics}")
+            continue
+
+        FullAnalysis(sub, nifti_dir, dwi_nifti_dir, bm_dir, reg_dir, SUBJECTS_DIR, outDir, outDirMetrics, save, recon_all=recon_all, register=register, apply_transform=apply_transform, apply_transform_bm=apply_transform_bm, metrics=metrics, show_bm_reg=show_bm_reg)
 
 
