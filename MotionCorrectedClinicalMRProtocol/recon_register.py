@@ -197,27 +197,30 @@ def Run_Long_Stream(name):
 
     # Run base recon all to create whithin-subject template:
     #  MoCo OFF scans
+    root = os.environ.get("MOCO_DATASET_PATH")
+    sd = os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')
+
     tp = '-tp '+name # MoCo OFF Still has different name
     for mov in ['rec-wore_run-02', 'rec-wore_run-03']:
         tp += ' -tp '+'X_OFF_'+ mov+name
     for mov in ['run-01', 'rec-wore_run-02', 'rec-wore_run-03']:
         tp += ' -tp '+'X_ON_'+ mov+name
 
-    if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_ON_STILL_Vol_10/Data_Recon_All/X_BASE_OFF_'+name)==False:
-        subprocess.run('recon-all -base X_BASE_'+name+' '+tp+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True)
+    if os.path.exists(sd+'X_ON_STILL_Vol_10/Data_Recon_All/X_BASE_OFF_'+name)==False:
+        subprocess.run('recon-all -base X_BASE_'+name+' '+tp+' -sd '+sd+' -all  -parallel', shell=True)
 
 
     # Longitudinal runs:
-    if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/'+name+'.long.X_BASE_OFF_'+name)==False:
-        subprocess.run('recon-all -long '+name+' X_BASE_'+name+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True) # MoCo OFF Still has different name
+    if os.path.exists(sd+name+'.long.X_BASE_OFF_'+name)==False:
+        subprocess.run('recon-all -long '+name+' X_BASE_'+name+' -sd '+sd+' -all  -parallel', shell=True) # MoCo OFF Still has different name
     #for mov in ['NOD_RR_', 'SHAKE_RR_']:
     for mov in ['rec-wore_run-02', 'rec-wore_run-03']:
-        if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_OFF_'+mov+name+'.long.X_BASE_OFF_'+name)==False:
-            subprocess.run('recon-all -long X_OFF_'+mov+name+' X_BASE_'+name+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True)
+        if os.path.exists(sd+'X_OFF_'+mov+name+'.long.X_BASE_OFF_'+name)==False:
+            subprocess.run('recon-all -long X_OFF_'+mov+name+' X_BASE_'+name+' -sd '+sd+' -all  -parallel', shell=True)
     #for mov in ['STILL_', 'NOD_RR_', 'SHAKE_RR_']:
     for mov in ['run-01', 'rec-wore_run-02', 'rec-wore_run-03']:
-        if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ON_'+mov+name+'.long.X_BASE_ON_'+name)==False:
-            subprocess.run('recon-all -long X_ON_'+mov+name+' X_BASE_'+name+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all  -parallel', shell=True)
+        if os.path.exists(sd+'ON_'+mov+name+'.long.X_BASE_ON_'+name)==False:
+            subprocess.run('recon-all -long X_ON_'+mov+name+' X_BASE_'+name+' -sd '+sd+' -all  -parallel', shell=True)
 
     return 0
 

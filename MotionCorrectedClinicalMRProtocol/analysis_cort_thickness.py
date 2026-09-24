@@ -7,6 +7,8 @@ import glob
 from recon_register import Run_Long_Stream
 from utils import SortFiles
 
+root = os.environ.get("MOCO_DATASET_PATH")
+
 run_RR = True
 run_no_RR = False
 run_long = False
@@ -24,7 +26,7 @@ for i in range(20,23):
 if run_RR == True:
     for name in names:
         # define directories: 
-        nifti_dir = '../BIDSdata_defaced/'+name+'/'
+        nifti_dir = root+name+'anat/'
 
         list_sequ = os.listdir(nifti_dir)
         sequences = [x for x in list_sequ if x.startswith('sub')]
@@ -55,10 +57,10 @@ if run_RR == True:
                             print('No RR scan for ', d)
                             continue
 
-                    if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/'+subj_id):
+                    if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+subj_id):
                         continue
                 
-                    subprocess.run('recon-all -i ' + out_volume + ' -s ' + subj_id + ' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all -parallel', 
+                    subprocess.run('recon-all -i ' + out_volume + ' -s ' + subj_id + ' -sd '+os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+' -all -parallel', 
                                    shell=True)
                     
                     print('############')
@@ -72,7 +74,7 @@ if run_RR == True:
 if run_no_RR:
     for name in names:
         # define directories:
-        nifti_dir = '../BIDSdata_defaced/' + name + 'anat/'
+        nifti_dir = root + name + 'anat/'
             
         list_sequ = os.listdir(nifti_dir)
         sequences = [x for x in list_sequ if x.startswith('sub')]
@@ -100,10 +102,10 @@ if run_no_RR:
                     subj_id = 'X_'+d+name
 
             
-                    if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/'+subj_id):
+                    if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+subj_id):
                         continue
                 
-                    subprocess.run('recon-all -i ' + out_volume + ' -s ' + subj_id + ' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all -parallel', 
+                    subprocess.run('recon-all -i ' + out_volume + ' -s ' + subj_id + ' -sd '+os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+' -all -parallel', 
                                    shell=True)
                     
                     print('############')
@@ -111,7 +113,7 @@ if run_no_RR:
                     print('############')
                     
                     
-                    with open('/mnt/mocodata1/Data_Analysis/Surface_Estimates/Status_Recon_All.txt', 'a') as f:
+                    with open(os.path.join(root, 'derivatives/results/Surface_Estimates/') + 'Status_Recon_All.txt', 'a') as f:
                         f.write(subj_id+' done at '+str(datetime.datetime.now())+'\n')
 
 
@@ -119,7 +121,7 @@ if run_no_RR:
 ''' (3) Check whether cross-sectional runs were successful. If not, run them 
 again. Otherwise run longitudinal stream. Afterwards, check longitudinal runs '''
 
-outDir = '/mnt/mocodata1/Data_Analysis/Surface_Estimates/'
+outDir = os.path.join(root, 'derivatives/results/Surface_Estimates/')
 
 if run_long:
     for name in names:
@@ -129,11 +131,11 @@ if run_long:
         fails = []
     
         for d in descr:
-            if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_'+d+name+'/scripts/recon-all.error'):
+            if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_'+d+name+'/scripts/recon-all.error'):
                 print('Recon all failed for ', 'X_', d, name)
                 fails.append('X_'+d+name)
             if d != 'ON_STILL_':
-                if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_'+d+'RR_'+name+'/scripts/recon-all.error'):
+                if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_'+d+'RR_'+name+'/scripts/recon-all.error'):
                     print('Recon all failed for ', 'X_'+d+'RR_'+name)
                     fails.append('X_'+d+'RR_'+name)
     
@@ -153,19 +155,19 @@ if run_long:
     
         fails = []
         for d in descr:
-            if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_'+d+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
+            if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_'+d+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
                 print('Recon all failed for ', 'X_', d, name, '.long')
                 fails.append('X_'+d+name[:-1])
             if d != 'ON_STILL_':
-                if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_'+d+'RR_'+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
+                if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_'+d+'RR_'+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
                     print('Recon all failed for ', 'X_'+d+'RR_'+name+'.long')
                     fails.append('X_'+d+'RR_'+name[:-1])
     
-        if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/'+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
+        if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+name[:-1]+'.long.X_BASE_'+name[:-1]+'/scripts/recon-all.error'):
             print('Recon all failed for '+name[:-1]+'.long.')
             fails.append(name[:-1])
     
-        if os.path.exists('/mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/X_BASE_'+name+'scripts/recon-all.error'):
+        if os.path.exists(os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+'X_BASE_'+name+'scripts/recon-all.error'):
             print('Recon all failed for X_BASE_'+name)
             fails.append('X_BASE_'+name[:-1])
     
@@ -173,9 +175,9 @@ if run_long:
         # run longitudinal recon-all again without parallel option for failed runs:
         for f in fails:
             if f != 'X_BASE_'+name[:-1]:
-                subprocess.run('recon-all -long '+f+' X_BASE_'+name[:-1]+' -sd /mnt/mocodata1/Data_Analysis/Data_Recon_All/Longitudinal/ -all', shell=True)
+                subprocess.run('recon-all -long '+f+' X_BASE_'+name[:-1]+' -sd '+os.path.join(root, 'derivatives/results/Data_Recon_All/Longitudinal/')+' -all', shell=True)
     
-                with open('/mnt/mocodata1/Data_Analysis/Surface_Estimates/Status_Long_ReRun.txt', 'a') as file:
+                with open(os.path.join(root, 'derivatives/results/Surface_Estimates/') + 'Status_Long_ReRun.txt', 'a') as file:
                     file.write(f+'_RR re-run done at '+str(datetime.datetime.now())+'\n')
         
     
@@ -235,7 +237,7 @@ if run == True:
     #RMS for MoCo Off still:
     descr = ['ON_STILL_', 'ON_NOD_',  'OFF_NOD_', 'ON_SHAKE_', 'OFF_SHAKE_']
     motion = ['STILL', 'NOD', 'NOD', 'SHAKE', 'SHAKE']
-    files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
+    files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_STILL/T1_MPR*.txt')
     file = SortFiles(files)[0]
     metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
     subj = []
@@ -249,7 +251,7 @@ if run == True:
 
     for d, m in zip(descr, motion):
         lines = []
-        files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
+        files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_'+m+'/T1_MPR*.txt')
         files = [f for f in files if 'mid' not in f]    # sort out all files 
         # where displacement was caluclated relative to mid of acquisition
         file = SortFiles(files)[0]
@@ -279,7 +281,7 @@ if run == True:
     '''Create FSGD file / design matrix for scans with reacquisition: '''
     descr = ['ON_NOD_', 'ON_SHAKE_', 'OFF_NOD_', 'OFF_SHAKE_']
     motion = ['NOD', 'SHAKE', 'NOD', 'SHAKE']
-    files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
+    files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_STILL/T1_MPR*.txt')
     file = SortFiles(files)[0]
     metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
     subj = []
@@ -293,7 +295,7 @@ if run == True:
 
     for d, m in zip(descr, motion):
         lines = []
-        files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
+        files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_'+m+'/T1_MPR*.txt')
         file = SortFiles(files)[0]
         if d[:2] == 'OF':
             metrics = np.loadtxt(file, unpack=True, usecols=0)
@@ -369,7 +371,7 @@ if run == True:
     #RMS for MoCo Off still:
     descr = ['ON_STILL_', 'ON_NOD_',  'OFF_NOD_', 'ON_SHAKE_', 'OFF_SHAKE_']
     motion = ['STILL', 'NOD', 'NOD', 'SHAKE', 'SHAKE']
-    files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_STILL/T1_MPR*.txt')
+    files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_STILL/T1_MPR*.txt')
     file = SortFiles(files)[0]
     metrics_ref = np.loadtxt(file, unpack=True, usecols=0)
     subj = []
@@ -383,7 +385,7 @@ if run == True:
 
     for d, m in zip(descr, motion):
         lines = []
-        files = glob.glob('/mnt/mocodata1/Data_Analysis/Motion_Estimates/Comparison/MotionMetrics_'+m+'/T1_MPR*.txt')
+        files = glob.glob(os.path.join(root, 'derivatives/results/Motion_Estimates/Comparison/') + 'MotionMetrics_'+m+'/T1_MPR*.txt')
         file = SortFiles(files)[0]
         if d[:2] == 'OF':
             metrics = np.loadtxt(file, unpack=True, usecols=0)

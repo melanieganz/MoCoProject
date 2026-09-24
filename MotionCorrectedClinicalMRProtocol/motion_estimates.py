@@ -168,10 +168,10 @@ def FindALN(subj, name, bids_dir=None, track_dir=None):
         name of sequence.
     bids_dir : str (optional)
         directory of DICOM files. If None, then it is set to default: 
-        '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj
+        MOCO_DATASET_PATH + subj + 'anat/'
     track_dir : str (optional)
         directory of motion tracking files. If None, then it is set to default: 
-        '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+        MOCO_DATASET_PATH + 'source/' + subj + 'TCLdata/'
 
     Returns
     -------
@@ -226,11 +226,11 @@ def FindPOA_TIM(subj, name, bids_dir=None, track_dir=None):
     name : str
         name of sequence.
     bids_dir : str (optional)
-        directory of DICOM files. If None, then it is set to default: 
-        '../BIDSdata_defaced/'+subj
+        directory of DICOM files. If None, then it is set to default:
+        MOCO_DATASET_PATH + subj + 'anat/'
     track_dir : str (optional)
-        directory of motion tracking files. If None, then it is set to default: 
-        '../TCLData/'+subj
+        directory of motion tracking files. If None, then it is set to default:
+        MOCO_DATASET_PATH + 'source/' + subj + 'TCLdata/'
 
     Returns
     -------
@@ -304,7 +304,7 @@ def GetTimeFromTCL(mot, name, subj=None, track_dir=None):
     '''
     
     if track_dir is None:
-        track_dir = '../BIDSdata_defaced/'+subj + 'anat/'
+        track_dir = root + 'source/' + subj + 'TCLdata/'
     
     find = int(search_string_in_file(mot, 'Label Position')[0][0])
     
@@ -573,10 +573,10 @@ def ExtractMotionMatForScan(subj, name, seq_type, track_dir=None, bids_dir=None)
         type of sequence (e.g. 'STILL_T1_MPR') for determining scan time
     bids_dir : str (optional)
         directory of DICOM files. If None, then it is set to default: 
-        '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj
+        MOCO_DATASET_PATH + subj + 'anat/'
     track_dir : str (optional)
         directory of motion tracking files. If None, then it is set to default: 
-        '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+        MOCO_DATASET_PATH + 'source/' + subj + 'TCLdata/'
 
     Returns
     -------
@@ -635,10 +635,10 @@ def CalcMotionMetricsforScan(subj, name, seq_type, track_dir=None, bids_dir=None
         type of sequence (e.g. 'STILL_T1_MPR') for determining scan time
     bids_dir : str (optional)
         directory of DICOM files. If None, then it is set to default: 
-        '/mnt/mocodata1/Data_Analysis/DICOMS/'+subj
+        MOCO_DATASET_PATH + subj + 'anat/'
     track_dir : str (optional)
         directory of motion tracking files. If None, then it is set to default: 
-        '/mnt/mocodata1/Data_Analysis/TCLData/'+subj
+        MOCO_DATASET_PATH + 'source/' + subj + 'TCLdata/'
     center : bool (optional)
         determines whether the displacements are calculated with respect to 
         the start of the sequence (default) or if True, with respect to the 

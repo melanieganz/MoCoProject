@@ -215,11 +215,9 @@ if __name__ == "__main__":
     ''' (1) Run analysis on prospectively corrected and uncorrected data:'''
     # define specific input parameters for the current run:
 
-    #Paths should be changed into a loop once we run for all subjects
-    #root = '/mnt/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
+    # root is supplied externally via the MOCO_DATASET_PATH environment
+    # variable, e.g. MOCO_DATASET_PATH=/path/to/ds004332-download/
     root = os.environ.get("MOCO_DATASET_PATH")
-    # Path on Windows laptop '//pmod.nru.dk/mocodata1/MoCoHealthy/Public/BIDS/BIDSdata/'
-    # Path on Unix laptop '/home/melanie/Data/ds004332-download/'
 
 
     save = '2023_06_08'

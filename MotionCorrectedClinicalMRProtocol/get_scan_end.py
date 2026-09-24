@@ -10,8 +10,9 @@ import ismrmrd
 import ismrmrd.xsd
 from motion_estimates import search_string_in_file, Add_Time
 
+root = os.environ.get("MOCO_DATASET_PATH")
 
-subdir = [] 
+subdir = []
 for i in range(1,10):
     subdir.append('Subject_0'+str(i)+'/')
 for i in range(10,20):
@@ -31,12 +32,12 @@ h5_folder = '../RawDatah5/'
 if get_scan_start:
     cont = True
     for sequ in sequs:
-        if os.path.exists('/mnt/mocodata1/Data_Analysis/Motion_Estimates/ScanTimes_'+sequ+'_'+date+'.txt'):
-            print('Text file with /data1/hannah/Motion_Estimates/ScanTimes_'+sequ+'_'+date+'.txt already exists! If you still want to continue set cont to True.')
+        if os.path.exists(os.path.join(root, 'derivatives/results/Motion_Estimates/') + 'ScanTimes_'+sequ+'_'+date+'.txt'):
+            print('Text file with <MOCO_DATASET_PATH>/derivatives/results/Motion_Estimates/ScanTimes_'+sequ+'_'+date+'.txt already exists! If you still want to continue set cont to True.')
             cont = False
             break
             
-        with open('/mnt/mocodata1/Data_Analysis/Motion_Estimates/ScanTimes_'+sequ+'_'+date+'.txt', 'a') as f:
+        with open(os.path.join(root, 'derivatives/results/Motion_Estimates/') + 'ScanTimes_'+sequ+'_'+date+'.txt', 'a') as f:
                     f.write('#subject_ID name_of_sequence scan_start\n')
                     
     #cont = True
@@ -45,7 +46,7 @@ if get_scan_start:
             for sequ in sequs:
                 # for FLAIR, DIFF and T2STAR not all volunteers available:
                 if sequ in ['DIFF', 'T2_FLAIR', 'T2STAR']:
-                    tmp = os.listdir('../BIDSdata_defaced/'+sub)
+                    tmp = os.listdir(root+sub+'anat/')
                     tmp_ = ''
                     test = sequ
                     if sequ == 'DIFF':
@@ -87,7 +88,7 @@ if get_scan_start:
                     time = time.strftime('%H%M%S.%f')
                     
                     # save studyTime:
-                    with open('/mnt/mocodata1/Data_Analysis/Motion_Estimates/ScanTimes_'+sequ+'_'+date+'.txt', 'a') as f:
+                    with open(os.path.join(root, 'derivatives/results/Motion_Estimates/') + 'ScanTimes_'+sequ+'_'+date+'.txt', 'a') as f:
                         f.write(sub+' '+name+' '+time+'\n')
 
 
@@ -104,12 +105,12 @@ ScanTimes = {'STILL_T1_MPR':np.array([4,40]), 'NOD_T1_MPR':np.array([5,12]),
 if get_scan_end:
     cont = True
     for sequ in sequs:
-        if os.path.exists('/mnt/mocodata1/Data_Analysis/Motion_Estimates/ScanEndTimes_'+sequ+'_'+date+'.txt'):
-            print('Text file with /data1/hannah/Motion_Estimates/ScanEndTimes_'+sequ+'_'+date+'.txt already exists! If you still want to continue set cont to True.')
+        if os.path.exists(os.path.join(root, 'derivatives/results/Motion_Estimates/') + 'ScanEndTimes_'+sequ+'_'+date+'.txt'):
+            print('Text file with <MOCO_DATASET_PATH>/derivatives/results/Motion_Estimates/ScanEndTimes_'+sequ+'_'+date+'.txt already exists! If you still want to continue set cont to True.')
             cont = False
             break
             
-        with open('/mnt/mocodata1/Data_Analysis/Motion_Estimates/ScanEndTimes_'+sequ+'_'+date+'.txt', 'a') as f:
+        with open(os.path.join(root, 'derivatives/results/Motion_Estimates/') + 'ScanEndTimes_'+sequ+'_'+date+'.txt', 'a') as f:
                     f.write('#subject_ID name_of_sequence scan_end\n')
                     
     #cont = True
@@ -141,7 +142,7 @@ if get_scan_end:
                 
                 
                 for name, seq_type in zip(names, seq_types):  
-                    file_scan_start = '/mnt/mocodata1/Data_Analysis/Motion_Estimates/ScanTimes_'+sequ+'_'+date+'.txt'
+                    file_scan_start = os.path.join(root, 'derivatives/results/Motion_Estimates/') + 'ScanTimes_'+sequ+'_'+date+'.txt'
                     
                     # search for sub and name:
                     find = int(search_string_in_file(file_scan_start, sub)[0][0])
@@ -161,7 +162,7 @@ if get_scan_end:
                     end_time = Add_Time(time, add_min=int(duration[0]), add_sec=int(duration[1]))
                     
                     # save the time:
-                    with open('/mnt/mocodata1/Data_Analysis/Motion_Estimates/ScanEndTimes_'+sequ+'_'+date+'.txt', 'a') as f:
+                    with open(os.path.join(root, 'derivatives/results/Motion_Estimates/') + 'ScanEndTimes_'+sequ+'_'+date+'.txt', 'a') as f:
                         f.write(sub+' '+name+' '+end_time+'\n')
         
 
