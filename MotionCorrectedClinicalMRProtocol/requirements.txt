@@ -20,8 +20,10 @@ pyparsing==3.3.3
 python-dateutil==2.9.0.post0
 scikit-image==0.26.0
 scipy==1.18.1
+seaborn==0.13.2
 six==1.17.0
 statsmodels==0.15.0
 tifffile==2026.9.20
+transforms3d==0.4.2
 typing_extensions==4.16.0
 wrapt==2.4.1

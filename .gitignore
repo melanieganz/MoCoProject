@@ -3,3 +3,4 @@
 *.zip
 MotionCorrectedClinicalMRProtocol/Quality_Metrics/ReadMe.txt
 .venv/
+MotionCorrectedClinicalMRProtocol/output/
