@@ -3,6 +3,25 @@
 Code for the manuscript titled "Evaluating the performance of markerless prospective motion correction and selective reacquisition in a general clinical protocol for brain MRI" (in submission). The presented code was adapted so that it can be run on the anonymized, published dataset ([ds004332](https://openneuro.org/datasets/ds004332) on OpenNeuro).
 Furthermore, all metrics from the repository https://github.com/melanieganz/MoCoProject/tree/main/ImageQualityMetrics are incorporated into the scripts, as well, in order to enable re-calculation of all these metrics.
 
+## Quick start
+
+Once you have [downloaded ds004332](https://openneuro.org/datasets/ds004332) and have FreeSurfer installed (with a license in place), the entire pipeline -- image quality, motion, cortical thickness (Fig. 8), and all plots -- can be run with a single command:
+
+```bash
+bash run_full_analysis.sh /path/to/ds004332-download /path/to/freesurfer
+```
+
+This creates/updates a Python venv and installs `requirements.txt` automatically, then runs every step in order (see "Detailed instructions" below for what each one does). **Cortical thickness (step 3) dominates the runtime** -- FreeSurfer's `recon-all` on 6 scans x 22 subjects is realistically hours to days depending on available cores. Extra arguments are passed through to `analysis_cort_thickness.py`, e.g. to control parallelism or run on fewer subjects for a quicker test:
+
+```bash
+bash run_full_analysis.sh /path/to/ds004332-download /path/to/freesurfer --jobs 8 --threads-per-job 2
+bash run_full_analysis.sh /path/to/ds004332-download /path/to/freesurfer --subjects sub-01 sub-02 sub-03
+```
+
+If `MOCO_DATASET_PATH`/`FREESURFER_HOME` are already exported, the positional arguments can be omitted: `bash run_full_analysis.sh [analysis_cort_thickness.py args...]`.
+
+The rest of this README describes each step individually, for running them by hand or resuming partway through.
+
 ## Setup
 
 1) **Get the dataset.** Download [ds004332](https://openneuro.org/datasets/ds004332). Every script below reads its input and writes its output relative to a single environment variable:
@@ -56,7 +75,7 @@ The analysis can be re-run in the following order. All steps read and write unde
     For redoing the FreeSurfer analysis and the registration from scratch, set `recon_all` and `register` to `True` as well (this reruns `recon-all` on every ground-truth scan and takes a long time). The script is resumable: on a rerun, subjects whose metrics already exist under `derivatives/results/metricsresults/` are skipped.
 
 2) Analysis of subjects' motion:
-    Run the script `analysis_motion_data.py` with `new_calc=True` to (re-)calculate the motion metrics on the anonymized dataset. Set `plot=True` as well to also generate the RMS/median/maximum-displacement boxplots (STILL, and NOD+SHAKE) as `Fig2_Motion_Boxplot_run-0{1,2}_*.png` under `derivatives/results/plots/`; if the metrics were already calculated in a previous run, set `new_calc=False` to skip straight to plotting.
+    Run the script `analysis_motion_data.py`. By default it (re-)calculates the motion metrics and generates the RMS/median/maximum-displacement boxplots (STILL, and NOD+SHAKE) as `Fig2_Motion_Boxplot_run-0{1,2}_*.png` under `derivatives/results/plots/`. If the metrics were already calculated in a previous run and only the plot needs regenerating, skip straight to plotting with `MOCO_MOTION_NEW_CALC=False python3 analysis_motion_data.py` (there's a matching `MOCO_MOTION_PLOT=False` to calculate without plotting).
     Note: `motion_estimates.py` reads scans' acquisition times from the BIDS JSON sidecars rather than the DICOM header.
 
 3) Analysis of cortical thickness maps:

@@ -31,8 +31,12 @@ sequs = ['mprage', 't2tse', 't1tirm', 'flair', 't2star']
 
 
 save = '_2022_06_02'
-new_calc = False
-plot = True
+# Both default to True (a fresh run needs to calculate the metrics before
+# it can plot them); override via env var for a rerun where the metrics
+# are already calculated and only the plot needs regenerating, e.g.:
+#   MOCO_MOTION_NEW_CALC=False python3 analysis_motion_data.py
+new_calc = os.environ.get("MOCO_MOTION_NEW_CALC", "True") == "True"
+plot = os.environ.get("MOCO_MOTION_PLOT", "True") == "True"
 
 
 ''' (1) Calculate the metrics for each sequence and volunteer: '''
