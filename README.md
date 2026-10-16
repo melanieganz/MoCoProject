@@ -1,5 +1,5 @@
 # MoCoProject
-In this repo we host code for the work on the ongoing MoCo project at Neurobiology Research Unit, Copenhagen University Hospital (Denmark). Check out the project webpage [here](https://sites.google.com/view/melanieganz/research-projects/imaging-children-without-anesthesia)
+In this repo we host code for the work on the ongoing MoCo project at Neurobiology Research Unit, Copenhagen University Hospital (Denmark). Check out the project webpage [here](https://melanieganz.github.io/research/moco-project.html)
 
 Overall project abstract:
 
